@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Npgmq</RootNamespace>
+        <LangVersion>default</LangVersion>
+        <PackageId>Ngpmq</PackageId>
+        <Authors>Brian Pursley</Authors>
+        <Company>Cinlogic LLC</Company>
+        <PackageProjectUrl>https://github.com/brianpursley/Npgmq</PackageProjectUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Copyright>Copyright © $(CopyrightYear) Cinlogic LLC</Copyright>
+        <Version>0.0.0</Version>
+        <Description>Npgmq provides a .NET client for Postgres Message Queue (PGMQ)</Description>
+        <RepositoryUrl>https://github.com/brianpursley/Npgmq</RepositoryUrl>
+        <PackageTags>PGMQ</PackageTags>
+        <TargetFrameworks>netstandard2.1;net6.0;net7.0;net8.0</TargetFrameworks>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Npgsql" Version="7.0.6" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <None Include="..\README.md" Pack="true" PackagePath=""/>
+    </ItemGroup>
+
+</Project>
