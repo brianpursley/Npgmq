@@ -22,7 +22,7 @@ public class NpgmqMessage<T>
     public DateTime EnqueuedAt { get; set; }
 
     /// <summary>
-    /// UTC timestamp at which the message will be available for reading again.
+    /// UTC timestamp at which the message will be available for reading.
     /// </summary>
     public DateTime Vt { get; set; }
     

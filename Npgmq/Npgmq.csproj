@@ -6,12 +6,10 @@
         <RootNamespace>Npgmq</RootNamespace>
         <LangVersion>default</LangVersion>
         <PackageId>Ngpmq</PackageId>
-        <Authors>Brian Pursley</Authors>
-        <Company>Cinlogic LLC</Company>
         <PackageProjectUrl>https://github.com/brianpursley/Npgmq</PackageProjectUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
-        <Copyright>Copyright © $(CopyrightYear) Cinlogic LLC</Copyright>
+        <Copyright>Copyright © $(CopyrightYear) The Npgmq Authors</Copyright>
         <Version>0.0.0</Version>
         <Description>Npgmq provides a .NET client for Postgres Message Queue (PGMQ)</Description>
         <RepositoryUrl>https://github.com/brianpursley/Npgmq</RepositoryUrl>

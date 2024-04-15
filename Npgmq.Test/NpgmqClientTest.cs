@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Dapper;
 using DeepEqual.Syntax;
 using Microsoft.Extensions.Configuration;
@@ -65,9 +66,9 @@ public sealed class NpgmqClientTest : IDisposable
 
         // Assert
         Assert.True(result);
-        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.q_{TestQueueName};"));
-        Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.a_{TestQueueName};"));
-        Assert.Equal(msgId, await _connection.ExecuteScalarAsync<long>($"select msg_id from pgmq.a_{TestQueueName} limit 1;"));
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.a_{TestQueueName};"));
+        Assert.Equal(msgId, await _connection.ExecuteScalarAsync<long>($"SELECT msg_id FROM pgmq.a_{TestQueueName} LIMIT 1;"));
     }
     
     [Fact]
@@ -101,48 +102,43 @@ public sealed class NpgmqClientTest : IDisposable
 
         // Assert
         Assert.Equal(msgIds, results);
-        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.q_{TestQueueName};"));
-        Assert.Equal(3, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.a_{TestQueueName};"));
-        Assert.Equal(msgIds.OrderBy(x => x), (await _connection.QueryAsync<long>($"select msg_id from pgmq.a_{TestQueueName} order by msg_id;")).ToList());
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(3, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.a_{TestQueueName};"));
+        Assert.Equal(msgIds.OrderBy(x => x), (await _connection.QueryAsync<long>($"SELECT msg_id FROM pgmq.a_{TestQueueName} ORDER BY msg_id;")).ToList());
     }
     
-    [Fact]
-    public async Task CreatePartitionedQueueAsync_should_create_a_partitioned_queue()
-    {
-        // Arrange
-        await ResetTestQueueAsync();
-        await _sut.DropQueueAsync(TestQueueName);
-
-        try
-        {
-            // Act
-            await _sut.CreatePartitionedQueueAsync(TestQueueName);
-
-            // Assert
-            Assert.Equal(1, await _connection.ExecuteScalarAsync<int>("select count(*) from pgmq.meta where queue_name = @queueName and is_partitioned = true;", new { queueName = TestQueueName }));
-        }
-        finally
-        {
-            if (await _sut.QueueExistsAsync(TestQueueName))
-            {
-                await _sut.DropQueueAsync(TestQueueName, true);   
-            }
-        }
-    }
-
     [Fact]
     public async Task CreateQueueAsync_should_create_a_queue()
     {
         // Arrange
-        await ResetTestQueueAsync();
+        if (await _sut.QueueExistsAsync(TestQueueName))
+        {
+            await _sut.DropQueueAsync(TestQueueName);
+        }
         
         // Act
-        // Nothing to do, since ResetTestQueueAsync() will create the queue
+        await _sut.CreateQueueAsync(TestQueueName);
         
         // Assert
-        Assert.Equal(1, await _connection.ExecuteScalarAsync<int>("select count(*) from pgmq.meta where queue_name = @queueName and is_partitioned = false;", new { queueName = TestQueueName }));
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pgmq.meta WHERE queue_name = @queueName and is_partitioned = false and is_unlogged = false;", new { queueName = TestQueueName }));
     }
     
+    [Fact]
+    public async Task CreateUnloggedQueueAsync_should_create_an_unlogged_queue()
+    {
+        // Arrange
+        if (await _sut.QueueExistsAsync(TestQueueName))
+        {
+            await _sut.DropQueueAsync(TestQueueName);
+        }
+        
+        // Act
+        await _sut.CreateUnloggedQueueAsync(TestQueueName);
+        
+        // Assert
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pgmq.meta WHERE queue_name = @queueName and is_partitioned = false and is_unlogged = true;", new { queueName = TestQueueName }));
+    }
+
     [Fact]
     public async Task DeleteAsync_should_delete_message()
     {
@@ -161,8 +157,8 @@ public sealed class NpgmqClientTest : IDisposable
 
         // Assert
         Assert.True(result);
-        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.q_{TestQueueName};"));
-        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.a_{TestQueueName};"));
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.a_{TestQueueName};"));
     }
     
     [Fact]
@@ -189,15 +185,15 @@ public sealed class NpgmqClientTest : IDisposable
             await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 2 }),
             await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 3 })
         };
-        Assert.Equal(3, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.q_{TestQueueName};"));
+        Assert.Equal(3, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
         
         // Act
         var results = await _sut.DeleteBatchAsync(TestQueueName, msgIds);
 
         // Assert
         Assert.Equal(msgIds, results);
-        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.q_{TestQueueName};"));
-        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.a_{TestQueueName};"));
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.a_{TestQueueName};"));
     }
 
     [Fact]
@@ -205,13 +201,33 @@ public sealed class NpgmqClientTest : IDisposable
     {
         // Arrange
         await ResetTestQueueAsync();
-        Assert.Equal(1, await _connection.ExecuteScalarAsync<int>("select count(*) from pgmq.meta where queue_name = @queueName;", new { queueName = TestQueueName }));
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pgmq.meta WHERE queue_name = @queueName;", new { queueName = TestQueueName }));
         
         // Act
         await _sut.DropQueueAsync(TestQueueName);
 
         // Assert
-        Assert.Equal(0, await _connection.ExecuteScalarAsync<int>("select count(*) from pgmq.meta where queue_name = @queueName;", new { queueName = TestQueueName }));
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pgmq.meta WHERE queue_name = @queueName;", new { queueName = TestQueueName }));
+    }
+
+    [Fact]
+    public async Task InitAsync_should_initialize_pgmq_extension()
+    {
+        // Arrange
+        await _connection.ExecuteAsync("DROP EXTENSION IF EXISTS pgmq CASCADE;");
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pg_extension WHERE extname = 'pgmq';"));
+
+        // Act
+        await _sut.InitAsync();
+        
+        // Assert
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pg_extension WHERE extname = 'pgmq';"));
+        
+        // Act (Calling it again should not throw an exception)
+        await _sut.InitAsync();
+        
+        // Assert
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pg_extension WHERE extname = 'pgmq';"));
     }
 
     [Fact]
@@ -252,6 +268,7 @@ public sealed class NpgmqClientTest : IDisposable
         // Assert
         Assert.NotNull(msg);
         Assert.True(msg.EnqueuedAt < DateTimeOffset.UtcNow);
+        Assert.Equal(1, msg.ReadCt);
         msg.Message.ShouldDeepEqual(new TestMessage
         {
             Foo = 123,
@@ -279,7 +296,7 @@ public sealed class NpgmqClientTest : IDisposable
         
         // Assert
         Assert.Null(msg);
-        Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.q_{TestQueueName};"));
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
     }
 
     [Fact]
@@ -365,14 +382,15 @@ public sealed class NpgmqClientTest : IDisposable
         Assert.NotNull(msg);
         Assert.Equal(msgId, msg.MsgId);
         Assert.True(msg.EnqueuedAt < DateTimeOffset.UtcNow);
+        Assert.Equal(0, msg.ReadCt);
         msg.Message.ShouldDeepEqual(new TestMessage
         {
             Foo = 123,
             Bar = "Test",
             Baz = DateTimeOffset.Parse("2023-09-01T01:23:45-04:00")
         });
-        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.q_{TestQueueName};"));
-        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.a_{TestQueueName};"));
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.a_{TestQueueName};"));
     }
 
     [Fact]
@@ -386,7 +404,7 @@ public sealed class NpgmqClientTest : IDisposable
 
         // Assert
         Assert.Null(msg);
-        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.q_{TestQueueName};"));
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
     }
 
     [Fact]
@@ -397,14 +415,14 @@ public sealed class NpgmqClientTest : IDisposable
         await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 1 });
         await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 2 });
         await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 3 });
-        Assert.Equal(3, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.q_{TestQueueName};"));
+        Assert.Equal(3, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
         
         // Act
         var purgeCount = await _sut.PurgeQueueAsync(TestQueueName);
 
         // Assert
         Assert.Equal(3, purgeCount);
-        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.q_{TestQueueName};"));
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
     }
 
     [Fact]
@@ -455,12 +473,38 @@ public sealed class NpgmqClientTest : IDisposable
         Assert.Equal(msgId, msg.MsgId);
         Assert.True(msg.EnqueuedAt < DateTimeOffset.UtcNow);
         Assert.True(msg.Vt > DateTimeOffset.UtcNow);
+        Assert.Equal(1, msg.ReadCt);
         msg.Message.ShouldDeepEqual(new TestMessage
         {
             Foo = 123,
             Bar = "Test",
             Baz = DateTimeOffset.Parse("2023-09-01T01:23:45-04:00")
         });
+    }
+
+    [Fact]
+    public async Task ReadAsync_should_read_string_message()
+    {
+        // Arrange
+        await ResetTestQueueAsync();
+        
+        // Act
+        var msgId = await _sut.SendAsync(TestQueueName, new
+        {
+            Foo = 123,
+            Bar = "Test",
+            Baz = DateTimeOffset.Parse("2023-09-01T01:23:45-04:00")
+        });
+
+        var msg = await _sut.ReadAsync<string>(TestQueueName);
+
+        // Assert
+        Assert.NotNull(msg);
+        Assert.Equal(msgId, msg.MsgId);
+        Assert.True(msg.EnqueuedAt < DateTimeOffset.UtcNow);
+        Assert.True(msg.Vt > DateTimeOffset.UtcNow);
+        Assert.Equal(1, msg.ReadCt);
+        msg.Message.ShouldDeepEqual("{\"Bar\": \"Test\", \"Baz\": \"2023-09-01T01:23:45-04:00\", \"Foo\": 123}");
     }
 
     [Fact]
@@ -474,7 +518,7 @@ public sealed class NpgmqClientTest : IDisposable
 
         // Assert
         Assert.Null(msg);
-        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.q_{TestQueueName};"));
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
     }
 
     [Fact]
@@ -518,8 +562,46 @@ public sealed class NpgmqClientTest : IDisposable
         });
 
         // Assert
-        Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.q_{TestQueueName};"));
-        Assert.Equal(msgId, await _connection.ExecuteScalarAsync<long>($"select msg_id from pgmq.q_{TestQueueName} limit 1;"));
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName} WHERE vt <= CURRENT_TIMESTAMP;"));
+        Assert.Equal(msgId, await _connection.ExecuteScalarAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} LIMIT 1;"));
+    }
+
+    [Fact]
+    public async Task SendAsync_should_add_string_message()
+    {
+        // Arrange
+        await ResetTestQueueAsync();
+        
+        // Act
+        var message = "{\"Foo\": 123, \"Bar\": \"Test\", \"Baz\": \"2023-09-01T01:23:45-04:00\"}";
+        var msgId = await _sut.SendAsync(TestQueueName, message); 
+        
+        // Assert
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(msgId, await _connection.ExecuteScalarAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} LIMIT 1;"));
+        var actualMessage = await _connection.ExecuteScalarAsync<string>($"SELECT message FROM pgmq.q_{TestQueueName} LIMIT 1;");
+        JsonDocument.Parse(actualMessage!).ShouldDeepEqual(JsonDocument.Parse(message));
+    }
+
+    [Fact]
+    public async Task SendDelayAsync_should_add_message_with_future_vt()
+    {
+        // Arrange
+        await ResetTestQueueAsync();
+        
+        // Act
+        var msgId = await _sut.SendDelayAsync(TestQueueName, new TestMessage
+        {
+            Foo = 123,
+            Bar = "Test",
+            Baz = DateTimeOffset.Parse("2023-09-01T01:23:45-04:00")
+        }, 100);
+
+        // Assert
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName} WHERE vt > CURRENT_TIMESTAMP;"));
+        Assert.Equal(msgId, await _connection.ExecuteScalarAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} LIMIT 1;"));
     }
 
     [Fact]
@@ -537,8 +619,8 @@ public sealed class NpgmqClientTest : IDisposable
         });
 
         // Assert
-        Assert.Equal(3, await _connection.ExecuteScalarAsync<long>($"select count(*) from pgmq.q_{TestQueueName};"));
-        Assert.Equal(msgIds.OrderBy(x => x), (await _connection.QueryAsync<long>($"select msg_id from pgmq.q_{TestQueueName} order by msg_id;")).ToList());
+        Assert.Equal(3, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(msgIds.OrderBy(x => x), (await _connection.QueryAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} ORDER BY msg_id;")).ToList());
     }
 
     [Fact]

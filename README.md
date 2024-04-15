@@ -5,6 +5,7 @@ A .NET client for <a href="https://github.com/tembo-io/pgmq">Postgres Message Qu
 ## Requirements
 
 * pgmq >= 0.26.0
+* Npgsql
 
 ## Installation
 To install the package via Nuget, run the following command:
@@ -50,26 +51,16 @@ public class MyMessageType
 }
 ```
 
-Alternatively you can send messages using an anonymous type and read them using an ExpandoObject, like this:
-```csharp
-using Npgmq;
+You can also send and read messages as JSON strings:
 
-await using var connection = new NgpsqlConnection("<YOUR CONNECTION STRING HERE>");
-var npgmq = new NpgmqClient(connection);
-
-await npgmq.CreateQueueAsync("my_queue");
-
-var msgId = await npgmq.SendAsync("my_queue", new
-{
-    Foo = "Test",
-    Bar = 123
-});
+```csharp   
+var msgId = await npgmq.SendAsync("my_queue", "{\"foo\":\"Test\",\"bar\":123}");
 Console.WriteLine($"Sent message with id {msgId}");
 
-var msg = await npgmq.ReadAsync<ExpandoObject>("my_queue") as dynamic;
+var msg = await npgmq.ReadAsync<string>("my_queue");
 if (msg != null)
 {
-    Console.WriteLine($"Read message with id {msg.MsgId}: Foo = {msg.Message?.Foo}, Bar = {msg.Message?.Bar}");
+    Console.WriteLine($"Read message with id {msg.MsgId}: {msg.Message}");
     await npgmq.ArchiveAsync("my_queue", msg!.MsgId);
 }
 ```

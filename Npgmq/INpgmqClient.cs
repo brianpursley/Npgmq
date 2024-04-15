@@ -5,13 +5,6 @@ namespace Npgmq;
 /// </summary>
 public interface INpgmqClient
 {
-    public const int DefaultPartitionInterval = 10_000;
-    public const int DefaultRetentionInterval = 100_000;
-    public const int DefaultVt = 30;
-    public const int DefaultReadBatchLimit = 10;
-    public const int DefaultPollTimeoutSeconds = 5;
-    public const int DefaultPollIntervalMilliseconds = 250;
-    
     /// <summary>
     /// Archive a message.
     /// </summary>
@@ -29,18 +22,16 @@ public interface INpgmqClient
     Task<List<long>> ArchiveBatchAsync(string queueName, IEnumerable<long> msgIds);
 
     /// <summary>
-    /// Create a new partitioned queue.
-    /// </summary>
-    /// <param name="queueName">The queue name.</param>
-    /// <param name="partitionInterval">The partition interval in seconds.</param>
-    /// <param name="retentionInterval">The retention interval in seconds.</param>
-    Task CreatePartitionedQueueAsync(string queueName, int partitionInterval = DefaultPartitionInterval, int retentionInterval = DefaultRetentionInterval);
-
-    /// <summary>
     /// Create a new queue.
     /// </summary>
     /// <param name="queueName">The queue name.</param>
     Task CreateQueueAsync(string queueName);
+
+    /// <summary>
+    /// Creates a new unlogged queue.
+    /// </summary>
+    /// <param name="queueName">The queue name.</param>
+    Task CreateUnloggedQueueAsync(string queueName);
     
     /// <summary>
     /// Delete a message.
@@ -62,9 +53,13 @@ public interface INpgmqClient
     /// Drop a queue.
     /// </summary>
     /// <param name="queueName">The queue name.</param>
-    /// <param name="partitioned">Whether the queue is partitioned.</param>
-    Task DropQueueAsync(string queueName, bool partitioned = false);
+    Task DropQueueAsync(string queueName);
 
+    /// <summary>
+    /// Create pgmq extension, if it does not exist.
+    /// </summary>
+    Task InitAsync();
+    
     /// <summary>
     /// List queues.
     /// </summary>
@@ -80,7 +75,7 @@ public interface INpgmqClient
     /// <param name="pollIntervalMilliseconds">The amount of time to wait between polls, in milliseconds.</param>
     /// <typeparam name="T">The message type.</typeparam>
     /// <returns>The message read, or null if no message was read.</returns>
-    Task<NpgmqMessage<T>?> PollAsync<T>(string queue, int vt = DefaultVt, int pollTimeoutSeconds = DefaultPollTimeoutSeconds, int pollIntervalMilliseconds = DefaultPollIntervalMilliseconds);
+    Task<NpgmqMessage<T>?> PollAsync<T>(string queue, int vt = NpgmqClient.DefaultVt, int pollTimeoutSeconds = NpgmqClient.DefaultPollTimeoutSeconds, int pollIntervalMilliseconds = NpgmqClient.DefaultPollIntervalMilliseconds) where T : class;
     
     /// <summary>
     /// Poll a queue for multiple messages.
@@ -92,7 +87,7 @@ public interface INpgmqClient
     /// <param name="pollIntervalMilliseconds">The amount of time to wait between polls, in milliseconds.</param>
     /// <typeparam name="T">The message type.</typeparam>
     /// <returns>The messages read.</returns>
-    Task<List<NpgmqMessage<T>>> PollBatchAsync<T>(string queueName, int vt = DefaultVt, int limit = DefaultReadBatchLimit, int pollTimeoutSeconds = DefaultPollTimeoutSeconds, int pollIntervalMilliseconds = DefaultPollIntervalMilliseconds);
+    Task<List<NpgmqMessage<T>>> PollBatchAsync<T>(string queueName, int vt = NpgmqClient.DefaultVt, int limit = NpgmqClient.DefaultReadBatchLimit, int pollTimeoutSeconds = NpgmqClient.DefaultPollTimeoutSeconds, int pollIntervalMilliseconds = NpgmqClient.DefaultPollIntervalMilliseconds) where T : class;
 
     /// <summary>
     /// Read a message from a queue and immediately delete it.
@@ -100,7 +95,7 @@ public interface INpgmqClient
     /// <param name="queueName">The queue name.</param>
     /// <typeparam name="T">The message type.</typeparam>
     /// <returns>The message read, or null if no message was read.</returns>
-    Task<NpgmqMessage<T>?> PopAsync<T>(string queueName);
+    Task<NpgmqMessage<T>?> PopAsync<T>(string queueName) where T : class;
     
     /// <summary>
     /// Purge a queue.
@@ -123,7 +118,7 @@ public interface INpgmqClient
     /// <param name="vt">The visibility time in seconds.</param>
     /// <typeparam name="T">The message type.</typeparam>
     /// <returns>The message read, or null if no message was read.</returns>
-    Task<NpgmqMessage<T>?> ReadAsync<T>(string queue, int vt = DefaultVt);
+    Task<NpgmqMessage<T>?> ReadAsync<T>(string queue, int vt = NpgmqClient.DefaultVt) where T : class;
 
     /// <summary>
     /// Read multiple messages from a queue.
@@ -133,7 +128,7 @@ public interface INpgmqClient
     /// <param name="limit">The maximum number of messages to read.</param>
     /// <typeparam name="T">The message type.</typeparam>
     /// <returns>The messages read.</returns>
-    Task<List<NpgmqMessage<T>>> ReadBatchAsync<T>(string queue, int vt = DefaultVt, int limit = DefaultReadBatchLimit);
+    Task<List<NpgmqMessage<T>>> ReadBatchAsync<T>(string queue, int vt = NpgmqClient.DefaultVt, int limit = NpgmqClient.DefaultReadBatchLimit) where T : class;
     
     /// <summary>
     /// Send a message to a queue.
@@ -143,6 +138,16 @@ public interface INpgmqClient
     /// <typeparam name="T">The message type.</typeparam>
     /// <returns>The ID of the sent message.</returns>
     Task<long> SendAsync<T>(string queueName, T message) where T : class;
+    
+    /// <summary>
+    /// Send a message to a queue with a delayed vt.
+    /// </summary>
+    /// <param name="queueName">The queue name.</param>
+    /// <param name="message">The message to send.</param>
+    /// <param name="delay">The delay, in seconds.</param>
+    /// <typeparam name="T">The message type.</typeparam>
+    /// <returns>The ID of the sent message.</returns>
+    Task<long> SendDelayAsync<T>(string queueName, T message, int delay) where T : class;
 
     /// <summary>
     /// Send multiple messages to a queue.
