@@ -2,7 +2,7 @@
 set -e
 
 cleanup() {
-  "$(dirname "$0")"/stop-db.sh >/dev/null 2>&1
+  "$(dirname "$0")"/stop-db.sh >/dev/null 2>&1 || true
 }
 
 trap cleanup EXIT
