@@ -1,0 +1,76 @@
+name: Build
+
+on:
+  create:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+.*'
+  push:
+    branches:
+      - '*'
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+.*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.ref }}  # This checks out the commit that triggered the workflow run
+  
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '8.0.x'
+  
+      - name: Build
+        run: dotnet build --configuration Release
+
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        version: [ 'latest', '1.0.0', '0.26.0' ]
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.ref }}  # This checks out the commit that triggered the workflow run
+  
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Test
+        working-directory: Npgmq.Test
+        run: scripts/run-tests.sh ${{ matrix.version }}
+  
+  publish:
+    needs: [build, test]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: ${{ github.ref }}  # This checks out the commit that triggered the workflow run
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Build
+        run: dotnet build --configuration Release
+
+      - name: Get the version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+      - name: Echo the version
+        run: echo "Version is $VERSION"
+
+      - name: Pack
+        run: dotnet pack Npgmq/Npgmq.csproj --no-build --configuration Release /p:PackageVersion=${{ env.VERSION }} /p:CopyrightYear=$(date +%Y) --output out
+
+      - name: Push
+        run: dotnet nuget push "out/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
