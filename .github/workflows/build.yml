@@ -41,16 +41,13 @@ jobs:
         run: dotnet build --no-restore --configuration Release /p:Version=${{ env.VERSION }} /p:CopyrightYear=$(date +%Y)
 
       - name: Test
-        working-directory: Npgmq.Test
-        run: scripts/run-tests.sh
+        run: Npgmq.Test/scripts/run-tests.sh
 
       - name: Test (pgmq 1.0.0)
-        working-directory: Npgmq.Test
-        run: scripts/run-tests.sh 1.0.0
+        run: Npgmq.Test/scripts/run-tests.sh 1.0.0
 
       - name: Test (pgmq 0.26.0)
-        working-directory: Npgmq.Test
-        run: scripts/run-tests.sh 0.26.0
+        run: Npgmq.Test/scripts/run-tests.sh 0.26.0
 
       - name: Pack
         if: startsWith(github.ref, 'refs/tags/v')
