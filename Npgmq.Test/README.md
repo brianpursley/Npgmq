@@ -3,6 +3,10 @@
 This project contains the tests for the Npgmq library.
 It spins up a PostgreSQL server in docker, installs the necessary extensions, creates a database, and runs the tests against it.
 
+## Configration
+
+The tests require a connection string, named `Test`, to be configured.
+
 ## Helper Scripts
 
 ### Start database, run tests, and stop database (All in one)

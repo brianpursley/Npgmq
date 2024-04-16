@@ -30,8 +30,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
 
-      - name: Echo the version
-        run: echo "Version is $VERSION"
+      - name: Print environment variables
+        run: env
 
       - name: Restore dependencies
         run: dotnet restore
