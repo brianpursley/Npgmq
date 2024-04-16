@@ -39,64 +39,42 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release /p:Version=${{ env.VERSION }} /p:CopyrightYear=$(date +%Y)
 
-      - uses: actions/upload-artifact@v2
-        with:
-          name: build-artifact
-          path: .
-
-  test:
-    needs: build
-    runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        version: [ 'latest' ]
-#        version: [ 'latest', '1.0.0', '0.26.0' ]
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: build-artifact
-          path: .
-      
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: '8.0.x'
-
-      - name: Start Database
-        working-directory: Npgmq.Test
-        run: scripts/start-db.sh ${{ matrix.version }}
-      
       - name: Test
-        run: dotnet test --no-build --verbosity normal --configuration Release
-        
-      - name: Stop Database
         working-directory: Npgmq.Test
-        run: scripts/stop-db.sh
-  
-  publish:
-    needs: [build, test]
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/download-artifact@v2
-        with:
-          name: build-artifact
-          path: .
-      
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v1
-        with:
-          dotnet-version: '8.0.x'
+        run: scripts/run-tests.sh
 
-      - name: Set the version
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+      - name: Test (pgmq 1.0.0)
+        working-directory: Npgmq.Test
+        run: scripts/run-tests.sh 1.0.0
 
-      - name: Echo the version
-        run: echo "Version is $VERSION"
+      - name: Test (pgmq 0.26.0)
+        working-directory: Npgmq.Test
+        run: scripts/run-tests.sh 0.26.0
 
       - name: Pack
+        if: startsWith(github.ref, 'refs/tags/v')
         run: dotnet pack Npgmq/Npgmq.csproj --no-build --configuration Release /p:PackageVersion=${{ env.VERSION }} /p:CopyrightYear=$(date +%Y) --output out
+
+      - uses: actions/upload-artifact@v2
+        if: startsWith(github.ref, 'refs/tags/v')
+        with:
+          name: build-artifact
+          path: out
+
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: build-artifact
+          path: out
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v1
+        with:
+          dotnet-version: '8.0.x'
 
 #      - name: Push
 #        run: dotnet nuget push "out/*.nupkg" --api-key ${{ secrets.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json
