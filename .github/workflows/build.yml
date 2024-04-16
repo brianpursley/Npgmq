@@ -12,7 +12,8 @@ on:
 
 env:
   VERSION: 0.0.0
-
+  ConnectionStrings__Test: ${{ secrets.TEST_CONNECTION_STRING }}
+  
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -30,8 +31,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v')
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
 
-      - name: Print environment variables
-        run: env
+      - name: Print the version
+        run: echo $VERSION
 
       - name: Restore dependencies
         run: dotnet restore
