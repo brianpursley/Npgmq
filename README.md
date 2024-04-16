@@ -2,10 +2,9 @@
 
 A .NET client for <a href="https://github.com/tembo-io/pgmq">Postgres Message Queue</a> (PGMQ).
 
-## Requirements
+## Compatibility
 
-* pgmq >= 0.26.0
-* Npgsql
+* pgmq >= 0.28.0
 
 ## Installation
 To install the package via Nuget, run the following command:
