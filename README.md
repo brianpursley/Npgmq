@@ -4,7 +4,7 @@ A .NET client for <a href="https://github.com/tembo-io/pgmq">Postgres Message Qu
 
 ## Compatibility
 
-* pgmq >= 0.28.0
+* pgmq >= 0.31.0
 
 ## Installation
 To install the package via Nuget, run the following command:
