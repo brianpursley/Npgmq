@@ -10,6 +10,7 @@ public sealed class NpgmqClientTest : IDisposable
 {
     private static readonly string TestQueueName = $"test_{Guid.NewGuid():N}";
     
+    private readonly string _connectionString;
     private readonly NpgsqlConnection _connection;
     private readonly NpgmqClient _sut;
 
@@ -26,11 +27,11 @@ public sealed class NpgmqClientTest : IDisposable
             .AddEnvironmentVariables()
             .AddUserSecrets<NpgmqClientTest>()
             .Build();
-        
-        _connection = new NpgsqlConnection(configuration.GetConnectionString("Test"));
-        _connection.Open();
-        
-        _sut = new NpgmqClient(_connection);
+
+        _connectionString = configuration.GetConnectionString("Test")!;
+
+        _connection = new NpgsqlConnection(_connectionString);
+        _sut = new NpgmqClient(_connectionString);
     }
     
     public void Dispose()
@@ -240,7 +241,10 @@ public sealed class NpgmqClientTest : IDisposable
         var queues = await _sut.ListQueuesAsync();
 
         // Assert
-        Assert.Contains(queues, x => x.QueueName == TestQueueName);
+        var queue = Assert.Single(queues);
+        Assert.Equal(TestQueueName, queue.QueueName);
+        Assert.False(queue.IsPartitioned);
+        Assert.False(queue.IsUnlogged);
     }
     
     [Fact]
@@ -253,9 +257,7 @@ public sealed class NpgmqClientTest : IDisposable
         var pollTask = _sut.PollAsync<TestMessage>(TestQueueName);
         await Task.Delay(1000);
 
-        await using var producerConnection = new NpgsqlConnection(_connection.ConnectionString);
-        await producerConnection.OpenAsync();
-        var producer = new NpgmqClient(producerConnection);
+        var producer = new NpgmqClient(_connectionString);
         await producer.SendAsync(TestQueueName, new TestMessage
         {
             Foo = 123,
@@ -310,9 +312,7 @@ public sealed class NpgmqClientTest : IDisposable
 
         // Wait a little bit and then send some messages
         await Task.Delay(1000);
-        await using var producerConnection = new NpgsqlConnection(_connection.ConnectionString);
-        await producerConnection.OpenAsync();
-        var producer = new NpgmqClient(producerConnection);
+        var producer = new NpgmqClient(_connectionString);
         await producer.SendAsync(TestQueueName, new TestMessage { Foo = 1 });
         await producer.SendAsync(TestQueueName, new TestMessage { Foo = 2 });
         await producer.SendAsync(TestQueueName, new TestMessage { Foo = 3 });
@@ -339,9 +339,7 @@ public sealed class NpgmqClientTest : IDisposable
 
         // Wait a little bit and then send some messages
         await Task.Delay(1000);
-        await using var producerConnection = new NpgsqlConnection(_connection.ConnectionString);
-        await producerConnection.OpenAsync();
-        var producer = new NpgmqClient(producerConnection);
+        var producer = new NpgmqClient(_connectionString);
         await producer.SendAsync(TestQueueName, new TestMessage { Foo = 1 });
         await producer.SendAsync(TestQueueName, new TestMessage { Foo = 2 });
         await producer.SendAsync(TestQueueName, new TestMessage { Foo = 3 });

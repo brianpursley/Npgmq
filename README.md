@@ -20,8 +20,7 @@ Here is an example that uses Npgmq to create a queue and then send/read/archive 
 ```csharp
 using Npgmq;
 
-await using var connection = new NgpsqlConnection("<YOUR CONNECTION STRING HERE>");
-var npgmq = new NpgmqClient(connection);
+var npgmq = new NpgmqClient("<YOUR CONNECTION STRING HERE>");
 
 await npgmq.CreateQueueAsync("my_queue");
 
@@ -63,3 +62,9 @@ if (msg != null)
     await npgmq.ArchiveAsync("my_queue", msg!.MsgId);
 }
 ```
+
+## Database Connection
+
+Npgmq uses Npgsql internally to connect to the database.
+
+The connection string passed to the `NpgmqClient` constructor should be an [Npgsql connection string](https://www.npgsql.org/doc/connection-string-parameters.html).

@@ -11,7 +11,17 @@ public class NpgmqQueue
     public string QueueName { get; set; } = null!;
     
     /// <summary>
-    /// UTC timestamp at which the queue was created.
+    /// Timestamp at which the queue was created.
     /// </summary>
     public DateTimeOffset CreatedAt { get; set; }
+    
+    /// <summary>
+    /// Whether the queue is partitioned.
+    /// </summary>
+    public bool IsPartitioned { get; set; }
+    
+    /// <summary>
+    /// Whether the queue is unlogged.
+    /// </summary>
+    public bool IsUnlogged { get; set; }
 }

@@ -17,14 +17,14 @@ public class NpgmqMessage<T>
     public int ReadCt { get; set; }
     
     /// <summary>
-    /// UTC timestamp at which the message was sent to the queue.
+    /// Timestamp at which the message was sent to the queue.
     /// </summary>
-    public DateTime EnqueuedAt { get; set; }
+    public DateTimeOffset EnqueuedAt { get; set; }
 
     /// <summary>
-    /// UTC timestamp at which the message will be available for reading.
+    /// Timestamp at which the message will be available for reading.
     /// </summary>
-    public DateTime Vt { get; set; }
+    public DateTimeOffset Vt { get; set; }
     
     /// <summary>
     /// The message value.
