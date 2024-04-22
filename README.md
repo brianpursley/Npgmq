@@ -1,4 +1,4 @@
-# Npgsql
+# Npgmq
 
 A .NET client for <a href="https://github.com/tembo-io/pgmq">Postgres Message Queue</a> (PGMQ).
 
