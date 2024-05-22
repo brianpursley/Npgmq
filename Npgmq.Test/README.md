@@ -21,6 +21,7 @@ scripts/run-tests.sh 1.1.1
 ```
 
 ### Start Database Only
+This can be helpful if you want to manually run tests, without having to start the database each time.
 
 ```bash
 scripts/start-db.sh
