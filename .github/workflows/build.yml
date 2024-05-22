@@ -42,8 +42,11 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release /p:Version=${{ env.VERSION }} /p:CopyrightYear=$(date +%Y)
 
-      - name: Test
+      - name: Test (latest pgmq version)
         run: Npgmq.Test/scripts/run-tests.sh
+
+      - name: Test (pgmq 1.1.1)
+        run: Npgmq.Test/scripts/run-tests.sh 1.1.1
 
       - name: Test (pgmq 1.0.0)
         run: Npgmq.Test/scripts/run-tests.sh 1.0.0
