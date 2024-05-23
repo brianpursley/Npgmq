@@ -22,6 +22,8 @@ using Npgmq;
 
 var npgmq = new NpgmqClient("<YOUR CONNECTION STRING HERE>");
 
+await npgmq.InitAsync();
+
 await npgmq.CreateQueueAsync("my_queue");
 
 var msgId = await npgmq.SendAsync("my_queue", new MyMessageType
@@ -35,7 +37,7 @@ var msg = await npgmq.ReadAsync<MyMessageType>("my_queue");
 if (msg != null)
 {
     Console.WriteLine($"Read message with id {msg.MsgId}: Foo = {msg.Message?.Foo}, Bar = {msg.Message?.Bar}");
-    await npgmq.ArchiveAsync("my_queue", msg!.MsgId);
+    await npgmq.ArchiveAsync("my_queue", msg.MsgId);
 }
 ```
 
@@ -59,7 +61,7 @@ var msg = await npgmq.ReadAsync<string>("my_queue");
 if (msg != null)
 {
     Console.WriteLine($"Read message with id {msg.MsgId}: {msg.Message}");
-    await npgmq.ArchiveAsync("my_queue", msg!.MsgId);
+    await npgmq.ArchiveAsync("my_queue", msg.MsgId);
 }
 ```
 
