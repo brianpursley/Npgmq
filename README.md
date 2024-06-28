@@ -51,7 +51,7 @@ public class MyMessageType
 }
 ```
 
-You can also send and read messages as JSON strings:
+You can send and read messages as JSON strings, like this:
 
 ```csharp   
 var msgId = await npgmq.SendAsync("my_queue", "{\"foo\":\"Test\",\"bar\":123}");
@@ -63,6 +63,13 @@ if (msg != null)
     Console.WriteLine($"Read message with id {msg.MsgId}: {msg.Message}");
     await npgmq.ArchiveAsync("my_queue", msg.MsgId);
 }
+```
+
+You can pass your own `NpgsqlConnection` to the `NpgmqClient` constructor, like this:
+
+```csharp
+using var myConnection = new NpgsqlConnection("<YOUR CONNECTION STRING HERE>");
+var npgmq = new NpgmqClient(myConnection);
 ```
 
 ## Database Connection
