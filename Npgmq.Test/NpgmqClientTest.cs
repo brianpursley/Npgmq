@@ -29,9 +29,8 @@ public sealed class NpgmqClientTest : IDisposable
             .Build();
 
         _connectionString = configuration.GetConnectionString("Test")!;
-
         _connection = new NpgsqlConnection(_connectionString);
-        _sut = new NpgmqClient(_connectionString);
+        _sut = new NpgmqClient(_connection);
     }
     
     public void Dispose()
@@ -546,6 +545,27 @@ public sealed class NpgmqClientTest : IDisposable
     }
 
     [Fact]
+    public async Task ConnectionString_should_be_used_to_connect()
+    {
+        // Arrange
+        await ResetTestQueueAsync();
+        var sut2 = new NpgmqClient(_connectionString);
+
+        // Act
+        var msgId = await sut2.SendAsync(TestQueueName, new TestMessage
+        {
+            Foo = 123,
+            Bar = "Test",
+            Baz = DateTimeOffset.Parse("2023-09-01T01:23:45-04:00")
+        });
+
+        // Assert
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName} WHERE vt <= CURRENT_TIMESTAMP;"));
+        Assert.Equal(msgId, await _connection.ExecuteScalarAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} LIMIT 1;"));
+    }
+
+    [Fact]
     public async Task SendAsync_should_add_message()
     {
         // Arrange
@@ -563,6 +583,69 @@ public sealed class NpgmqClientTest : IDisposable
         Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
         Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName} WHERE vt <= CURRENT_TIMESTAMP;"));
         Assert.Equal(msgId, await _connection.ExecuteScalarAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} LIMIT 1;"));
+    }
+
+    [Fact]
+    public async Task SendAsync_should_commit_with_database_transaction()
+    {
+        // Arrange
+        await ResetTestQueueAsync();
+        await using var connection2 = new NpgsqlConnection(_connectionString);
+        await connection2.OpenAsync();
+
+        // Act
+        await using var transaction = await _connection.BeginTransactionAsync();
+        var msgId = await _sut.SendAsync(TestQueueName, new TestMessage
+        {
+            Foo = 123,
+            Bar = "Test",
+            Baz = DateTimeOffset.Parse("2023-09-01T01:23:45-04:00")
+        });
+
+        // Assert
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(0, await connection2.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName} WHERE vt <= CURRENT_TIMESTAMP;"));
+        Assert.Equal(msgId, await _connection.ExecuteScalarAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} LIMIT 1;"));
+
+        // Act
+        await transaction.CommitAsync();
+
+        // Assert
+        Assert.Equal(1, await connection2.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(1, await connection2.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName} WHERE vt <= CURRENT_TIMESTAMP;"));
+        Assert.Equal(msgId, await connection2.ExecuteScalarAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} LIMIT 1;"));
+    }
+
+    [Fact]
+    public async Task SendAsync_should_rollback_with_database_transaction()
+    {
+        // Arrange
+        await ResetTestQueueAsync();
+        await using var connection2 = new NpgsqlConnection(_connectionString);
+        await connection2.OpenAsync();
+
+        // Act
+        await using var transaction = await _connection.BeginTransactionAsync();
+        var msgId = await _sut.SendAsync(TestQueueName, new TestMessage
+        {
+            Foo = 123,
+            Bar = "Test",
+            Baz = DateTimeOffset.Parse("2023-09-01T01:23:45-04:00")
+        });
+
+        // Assert
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(0, await connection2.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName} WHERE vt <= CURRENT_TIMESTAMP;"));
+        Assert.Equal(msgId, await _connection.ExecuteScalarAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} LIMIT 1;"));
+
+        // Act
+        await transaction.RollbackAsync();
+
+        // Assert
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(0, await connection2.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
     }
 
     [Fact]

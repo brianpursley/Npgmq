@@ -13,41 +13,50 @@ public class NpgmqClient : INpgmqClient
     public const int DefaultPollTimeoutSeconds = 5;
     public const int DefaultPollIntervalMilliseconds = 250;
 
-    private readonly string _connectionString;
+    private readonly NpgmqCommandFactory _commandFactory;
 
     /// <summary>
-    /// Create a new PGMQ client.
+    /// Create a new <see cref="NpgmqClient"/>.
     /// </summary>
     /// <param name="connectionString">The connection string.</param>
     public NpgmqClient(string connectionString)
     {
-        _connectionString = connectionString;
+        _commandFactory = new NpgmqCommandFactory(connectionString);
+    }
+
+    /// <summary>
+    /// Create a new <see cref="NpgmqClient"/>.
+    /// </summary>
+    /// <param name="connection">The connection to use.</param>
+    public NpgmqClient(NpgsqlConnection connection)
+    {
+        _commandFactory = new NpgmqCommandFactory(connection);
     }
 
     public async Task<bool> ArchiveAsync(string queueName, long msgId)
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("SELECT pgmq.archive(@queue_name, @msg_id);", connection);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.archive(@queue_name, @msg_id);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@msg_id", msgId);
                 var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
-                return (bool)result!;
+                return Convert.ToBoolean(result);
             }
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to archive message {msgId} in queue {queueName}.", ex);
         }
     }
 
     public async Task<List<long>> ArchiveBatchAsync(string queueName, IEnumerable<long> msgIds)
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("SELECT pgmq.archive(@queue_name, @msg_ids);", connection);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.archive(@queue_name, @msg_ids);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
@@ -64,62 +73,70 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to archive messages in queue {queueName}.", ex);
+        }
     }
 
     public async Task CreateQueueAsync(string queueName)
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("SELECT pgmq.create(@queue_name);", connection);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.create(@queue_name);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
-                cmd.Parameters.AddWithValue("queue_name", queueName);
+                cmd.Parameters.AddWithValue("@queue_name", queueName);
                 await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
             }
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to create queue {queueName}.", ex);
         }
     }
 
     public async Task CreateUnloggedQueueAsync(string queueName)
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("SELECT pgmq.create_unlogged(@queue_name);", connection);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.create_unlogged(@queue_name);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
-                cmd.Parameters.AddWithValue("queue_name", queueName);
+                cmd.Parameters.AddWithValue("@queue_name", queueName);
                 await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
             }
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to create unlogged queue {queueName}.", ex);
         }
     }
 
     public async Task<bool> DeleteAsync(string queueName, long msgId)
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("SELECT pgmq.delete(@queue_name, @msg_id);", connection);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.delete(@queue_name, @msg_id);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@msg_id", msgId);
                 var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
-                return (bool)result!;
+                return Convert.ToBoolean(result!);
             }
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to delete message {msgId} from queue {queueName}.", ex);
         }
     }
 
     public async Task<List<long>> DeleteBatchAsync(string queueName, IEnumerable<long> msgIds)
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("SELECT pgmq.delete(@queue_name, @msg_ids);", connection);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.delete(@queue_name, @msg_ids);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
@@ -136,44 +153,50 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to delete messages from queue {queueName}.", ex);
+        }
     }
 
     public async Task DropQueueAsync(string queueName)
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("SELECT pgmq.drop_queue(@queue_name);", connection);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.drop_queue(@queue_name);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
-                cmd.Parameters.AddWithValue("queue_name", queueName);
+                cmd.Parameters.AddWithValue("@queue_name", queueName);
                 await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
             }
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to drop queue {queueName}.", ex);
         }
     }
 
     public async Task InitAsync()
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("CREATE EXTENSION IF NOT EXISTS pgmq CASCADE;", connection);
+            var cmd = await _commandFactory.CreateAsync("CREATE EXTENSION IF NOT EXISTS pgmq CASCADE;").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
             }
         }
+        catch (Exception ex)
+        {
+            throw new NpgmqException("Failed to initialize PGMQ extension.", ex);
+        }
     }
-    
+
     public async Task<List<NpgmqQueue>> ListQueuesAsync()
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("SELECT queue_name, created_at, is_partitioned, is_unlogged FROM pgmq.list_queues();", connection);
+            var cmd = await _commandFactory.CreateAsync("SELECT queue_name, created_at, is_partitioned, is_unlogged FROM pgmq.list_queues();").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
@@ -194,28 +217,37 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
+        catch (Exception ex)
+        {
+            throw new NpgmqException("Failed to list queues.", ex);
+        }
     }
 
     public async Task<NpgmqMessage<T>?> PollAsync<T>(string queueName, int vt = DefaultVt, int pollTimeoutSeconds = DefaultPollTimeoutSeconds, int pollIntervalMilliseconds = DefaultPollIntervalMilliseconds) where T : class
     {
-        var result = await PollBatchAsync<T>(queueName, vt, 1, pollTimeoutSeconds, pollIntervalMilliseconds).ConfigureAwait(false);
-        return result.SingleOrDefault();
+        try
+        {
+            var result = await PollBatchAsync<T>(queueName, vt, 1, pollTimeoutSeconds, pollIntervalMilliseconds).ConfigureAwait(false);
+            return result.SingleOrDefault();
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to poll queue {queueName}.", ex);
+        }
     }
 
     public async Task<List<NpgmqMessage<T>>> PollBatchAsync<T>(string queueName, int vt = DefaultVt, int limit = DefaultReadBatchLimit, int pollTimeoutSeconds = DefaultPollTimeoutSeconds, int pollIntervalMilliseconds = DefaultPollIntervalMilliseconds) where T : class
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("SELECT msg_id, read_ct, enqueued_at, vt, message FROM pgmq.read_with_poll(@queue_name, @vt, @limit, @poll_timeout_s, @poll_interval_ms);", connection);
+            var cmd = await _commandFactory.CreateAsync("SELECT msg_id, read_ct, enqueued_at, vt, message FROM pgmq.read_with_poll(@queue_name, @vt, @limit, @poll_timeout_s, @poll_interval_ms);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
-                cmd.Parameters.AddWithValue("queue_name", queueName);
-                cmd.Parameters.AddWithValue("vt", vt);
-                cmd.Parameters.AddWithValue("limit", limit);
-                cmd.Parameters.AddWithValue("poll_timeout_s", pollTimeoutSeconds);
-                cmd.Parameters.AddWithValue("poll_interval_ms", pollIntervalMilliseconds);
+                cmd.Parameters.AddWithValue("@queue_name", queueName);
+                cmd.Parameters.AddWithValue("@vt", vt);
+                cmd.Parameters.AddWithValue("@limit", limit);
+                cmd.Parameters.AddWithValue("@poll_timeout_s", pollTimeoutSeconds);
+                cmd.Parameters.AddWithValue("@poll_interval_ms", pollIntervalMilliseconds);
                 var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
@@ -223,18 +255,20 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to poll queue {queueName}.", ex);
+        }
     }
 
     public async Task<NpgmqMessage<T>?> PopAsync<T>(string queueName) where T : class
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("SELECT msg_id, read_ct, enqueued_at, vt, message FROM pgmq.pop(@queue_name);", connection);
+            var cmd = await _commandFactory.CreateAsync("SELECT msg_id, read_ct, enqueued_at, vt, message FROM pgmq.pop(@queue_name);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
-                cmd.Parameters.AddWithValue("queue_name", queueName);
+                cmd.Parameters.AddWithValue("@queue_name", queueName);
                 var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
@@ -243,58 +277,71 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to pop queue {queueName}.", ex);
+        }
     }
 
     public async Task<long> PurgeQueueAsync(string queueName)
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("SELECT pgmq.purge_queue(@queue_name);", connection);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.purge_queue(@queue_name);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
-                cmd.Parameters.AddWithValue("queue_name", queueName);
+                cmd.Parameters.AddWithValue("@queue_name", queueName);
                 var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
-                return (long)result!;
+                return Convert.ToInt64(result!);
             }
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to purge queue {queueName}.", ex);
         }
     }
 
     public async Task<bool> QueueExistsAsync(string queueName)
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("SELECT 1 WHERE EXISTS (SELECT * FROM pgmq.list_queues() WHERE queue_name = @queue_name);", connection);
+            var cmd = await _commandFactory.CreateAsync("SELECT 1 WHERE EXISTS (SELECT * FROM pgmq.list_queues() WHERE queue_name = @queue_name);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
-                cmd.Parameters.AddWithValue("queue_name", queueName);
+                cmd.Parameters.AddWithValue("@queue_name", queueName);
                 var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
-                return (int)(result ?? 0) == 1;
+                return Convert.ToInt32(result ?? 0) == 1;
             }
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to check if queue {queueName} exists.", ex);
         }
     }
 
     public async Task<NpgmqMessage<T>?> ReadAsync<T>(string queueName, int vt = DefaultVt) where T : class
     {
-        var result = await ReadBatchAsync<T>(queueName, vt, 1).ConfigureAwait(false);
-        return result.SingleOrDefault();
+        try
+        {
+            var result = await ReadBatchAsync<T>(queueName, vt, 1).ConfigureAwait(false);
+            return result.SingleOrDefault();
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to read from queue {queueName}.", ex);
+        }
     }
 
     public async Task<List<NpgmqMessage<T>>> ReadBatchAsync<T>(string queueName, int vt = DefaultVt, int limit = DefaultReadBatchLimit) where T : class
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("SELECT msg_id, read_ct, enqueued_at, vt, message FROM pgmq.read(@queue_name, @vt, @limit);", connection);
+            var cmd = await _commandFactory.CreateAsync("SELECT msg_id, read_ct, enqueued_at, vt, message FROM pgmq.read(@queue_name, @vt, @limit);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
-                cmd.Parameters.AddWithValue("queue_name", queueName);
-                cmd.Parameters.AddWithValue("vt", vt);
-                cmd.Parameters.AddWithValue("limit", limit);
+                cmd.Parameters.AddWithValue("@queue_name", queueName);
+                cmd.Parameters.AddWithValue("@vt", vt);
+                cmd.Parameters.AddWithValue("@limit", limit);
                 var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
@@ -302,43 +349,53 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to read from queue {queueName}.", ex);
+        }
     }
 
     public async Task<long> SendAsync<T>(string queueName, T message) where T : class
     {
-        return await SendDelayAsync(queueName, message, 0).ConfigureAwait(false);
+        try
+        {
+            return await SendDelayAsync(queueName, message, 0).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to send message to queue {queueName}.", ex);
+        }
     }
 
     public async Task<long> SendDelayAsync<T>(string queueName, T message, int delay) where T : class
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("SELECT * FROM pgmq.send(@queue_name, @message, @delay);", connection);
+            var cmd = await _commandFactory.CreateAsync("SELECT * FROM pgmq.send(@queue_name, @message, @delay);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
-                cmd.Parameters.AddWithValue("queue_name", queueName);
-                cmd.Parameters.AddWithValue("message", NpgsqlDbType.Jsonb, SerializeMessage(message));
-                cmd.Parameters.AddWithValue("delay", delay);
+                cmd.Parameters.AddWithValue("@queue_name", queueName);
+                cmd.Parameters.AddWithValue("@message", NpgsqlDbType.Jsonb, SerializeMessage(message));
+                cmd.Parameters.AddWithValue("@delay", delay);
                 var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
-                return (long)result!;
+                return Convert.ToInt64(result!);
             }
         }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to send message to queue {queueName}.", ex);
+        }
     }
-    
+
     public async Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages) where T : class
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("SELECT * FROM pgmq.send_batch(@queue_name, @messages);", connection);
+            var cmd = await _commandFactory.CreateAsync("SELECT * FROM pgmq.send_batch(@queue_name, @messages);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
-                cmd.Parameters.AddWithValue("queue_name", queueName);
-                cmd.Parameters.AddWithValue("messages", NpgsqlDbType.Array | NpgsqlDbType.Jsonb,
-                    messages.Select(SerializeMessage).ToArray());
+                cmd.Parameters.AddWithValue("@queue_name", queueName);
+                cmd.Parameters.AddWithValue("@messages", NpgsqlDbType.Array | NpgsqlDbType.Jsonb, messages.Select(SerializeMessage).ToArray());
                 var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
@@ -351,22 +408,28 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to send messages to queue {queueName}.", ex);
+        }
     }
 
     public async Task SetVtAsync(string queueName, long msgId, int vtOffset)
     {
-        var connection = new NpgsqlConnection(_connectionString);
-        await using (connection.ConfigureAwait(false))
+        try
         {
-            await connection.OpenAsync();
-            var cmd = new NpgsqlCommand("SELECT pgmq.set_vt(@queue_name, @msg_id, @vt_offset);", connection);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.set_vt(@queue_name, @msg_id, @vt_offset);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
-                cmd.Parameters.AddWithValue("queue_name", queueName);
-                cmd.Parameters.AddWithValue("msg_id", msgId);
-                cmd.Parameters.AddWithValue("vt_offset", vtOffset);
+                cmd.Parameters.AddWithValue("@queue_name", queueName);
+                cmd.Parameters.AddWithValue("@msg_id", msgId);
+                cmd.Parameters.AddWithValue("@vt_offset", vtOffset);
                 await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
             }
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to set VT for message {msgId} in queue {queueName}.", ex);
         }
     }
 
