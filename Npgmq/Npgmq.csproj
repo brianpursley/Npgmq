@@ -5,7 +5,7 @@
         <Nullable>enable</Nullable>
         <RootNamespace>Npgmq</RootNamespace>
         <LangVersion>default</LangVersion>
-        <PackageId>Ngpmq</PackageId>
+        <PackageId>Npgmq</PackageId>
         <PackageProjectUrl>https://github.com/brianpursley/Npgmq</PackageProjectUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
