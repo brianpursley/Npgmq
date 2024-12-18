@@ -60,7 +60,7 @@ public class NpgmqClient : INpgmqClient
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
-                cmd.Parameters.AddWithValue("@msg_ids", msgIds);
+                cmd.Parameters.AddWithValue("@msg_ids", msgIds.ToArray());
                 var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
