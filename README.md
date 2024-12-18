@@ -2,14 +2,21 @@
 
 A .NET client for [Postgres Message Queue](https://github.com/tembo-io/pgmq) (PGMQ).
 
+[![Build](https://github.com/brianpursley/Npgmq/actions/workflows/build.yml/badge.svg)](https://github.com/brianpursley/Npgmq/actions/workflows/build.yml)
+[![Nuget](https://img.shields.io/nuget/v/Npgmq)](https://www.nuget.org/packages/Npgmq/)
+![License](https://img.shields.io/github/license/brianpursley/Npgmq)
+
 ## Compatibility
 
-* pgmq >= 0.31.0
+| PGMQ Version   | Compatibility                                                                                                                                                                                              |
+|----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1.5.0+         | Fully supported                                                                                                                                                                                            |
+| 0.31.0 - 1.4.5 | The following method overloads are *not* supported, since they were introduced in PGMQ 1.5.0:<br/> - `SendAsync(string, T, DateTimeOffset)`<br/>- `SendBatchAsync(string, IEnumerable<T>, DateTimeOffset)` |
 
 ## Installation
-To install the package via Nuget, run the following command:
+To install the package via [Nuget](https://www.nuget.org/packages/Npgmq/), run the following command:
 
-```bash
+```shell
 dotnet add package Npgmq
 ```
 

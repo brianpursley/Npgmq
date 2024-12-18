@@ -50,6 +50,12 @@ public sealed class NpgmqClientTest : IDisposable
         await _sut.CreateQueueAsync(TestQueueName);
     }
 
+    private async Task<bool> IsMinPgmqVersion(string minVersion)
+    {
+        var version = await _connection.ExecuteScalarAsync<string>("select extversion from pg_extension where extname = 'pgmq';");
+        return version is not null && new Version(version) >= new Version(minVersion);
+    }
+
     [Fact]
     public async Task ArchiveAsync_should_archive_a_single_message()
     {
@@ -687,9 +693,11 @@ public sealed class NpgmqClientTest : IDisposable
         Assert.Equal(msgId, await _connection.ExecuteScalarAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} LIMIT 1;"));
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task SendAsync_with_timestamp_delay_should_add_message_with_a_specified_vt()
     {
+        Skip.IfNot(await IsMinPgmqVersion("1.5.0"), "This test requires pgmq 1.5.0 or later");
+        
         // Arrange
         await ResetTestQueueAsync();
         var delay = DateTimeOffset.UtcNow.AddHours(1);
@@ -747,9 +755,11 @@ public sealed class NpgmqClientTest : IDisposable
         Assert.Equal(msgIds.OrderBy(x => x), (await _connection.QueryAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} ORDER BY msg_id;")).ToList());
     }
 
-    [Fact]
+    [SkippableFact]
     public async Task SendBatchAsync_with_timestamp_delay_should_add_multiple_messages_with_a_specified_vt()
     {
+        Skip.IfNot(await IsMinPgmqVersion("1.5.0"), "This test requires pgmq 1.5.0 or later");
+
         // Arrange
         await ResetTestQueueAsync();
         var delay = DateTimeOffset.UtcNow.AddHours(1);
