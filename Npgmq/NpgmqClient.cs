@@ -468,18 +468,99 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
+    public async Task<List<NpgmqMetricsResult>> GetMetricsAsync()
+    {
+        try
+        {
+            var cmd = await _commandFactory.CreateAsync("SELECT * FROM pgmq.metrics_all();").ConfigureAwait(false);
+            await using (cmd.ConfigureAwait(false))
+            {
+                var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+                await using (reader.ConfigureAwait(false))
+                {
+                    return await ReadMetricsAsync(reader).ConfigureAwait(false);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException("Failed to get metrics.", ex);
+        }
+    }
+
+    public async Task<NpgmqMetricsResult> GetMetricsAsync(string queueName)
+    {
+        try
+        {
+            var cmd = await _commandFactory.CreateAsync("SELECT * FROM pgmq.metrics(@queue_name);").ConfigureAwait(false);
+            await using (cmd.ConfigureAwait(false))
+            {
+                cmd.Parameters.AddWithValue("@queue_name", queueName);
+                var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+                await using (reader.ConfigureAwait(false))
+                {
+                    var results = await ReadMetricsAsync(reader).ConfigureAwait(false);
+                    return results.Count switch
+                    {
+                        1 => results.Single(),
+                        0 => throw new NpgmqException($"Failed to get metrics for queue {queueName}. No data returned."),
+                        _ => throw new NpgmqException($"Failed to get metrics for queue {queueName}. Multiple results returned.")
+                    };
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to get metrics for queue {queueName}.", ex);
+        }
+    }
+    
+    private static async Task<List<NpgmqMetricsResult>> ReadMetricsAsync(DbDataReader reader)
+    {
+        var queueNameOrdinal = reader.GetOrdinal("queue_name");
+        var queueLengthOrdinal = reader.GetOrdinal("queue_length");
+        var newestMsgAgeSecOrdinal = reader.GetOrdinal("newest_msg_age_sec");
+        var oldestMsgAgeSecOrdinal = reader.GetOrdinal("oldest_msg_age_sec");
+        var totalMessagesOrdinal = reader.GetOrdinal("total_messages");
+        var scrapeTimeOrdinal = reader.GetOrdinal("scrape_time");
+        var queueVisibleLengthOrdinal = reader.TryGetOrdinal("queue_visible_length");
+        
+        var results = new List<NpgmqMetricsResult>();
+        while (await reader.ReadAsync().ConfigureAwait(false))
+        {
+            results.Add(new NpgmqMetricsResult
+            {
+                QueueName = reader.GetString(queueNameOrdinal),
+                QueueLength = reader.GetInt64(queueLengthOrdinal),
+                NewestMessageAge = await reader.IsDBNullAsync(newestMsgAgeSecOrdinal) ? null : reader.GetInt32(newestMsgAgeSecOrdinal),
+                OldestMessageAge = await reader.IsDBNullAsync(oldestMsgAgeSecOrdinal) ? null : reader.GetInt32(oldestMsgAgeSecOrdinal),
+                TotalMessages = reader.GetInt64(totalMessagesOrdinal),
+                ScrapeTime = reader.GetDateTime(scrapeTimeOrdinal),
+                // visible_queue_length column was added in PGMQ 1.5.0, so we need to handle if it doesn't exist by setting -1 as the default.
+                QueueVisibleLength = queueVisibleLengthOrdinal >= 0 ? reader.GetInt64(queueVisibleLengthOrdinal) : -1
+            });
+        }
+        return results;
+    }
+
     private static async Task<List<NpgmqMessage<T>>> ReadMessagesAsync<T>(DbDataReader reader) where T : class
     {
+        var msgIdOrdinal = reader.GetOrdinal("msg_id");
+        var readCtOrdinal = reader.GetOrdinal("read_ct");
+        var enqueuedAtOrdinal = reader.GetOrdinal("enqueued_at");
+        var vtOrdinal = reader.GetOrdinal("vt");
+        var messageOrdinal = reader.GetOrdinal("message");
+
         var result = new List<NpgmqMessage<T>>();
         while (await reader.ReadAsync().ConfigureAwait(false))
         {
             result.Add(new NpgmqMessage<T>
             {
-                MsgId = reader.GetInt64(0),
-                ReadCt = reader.GetInt32(1),
-                EnqueuedAt = reader.GetDateTime(2),
-                Vt = reader.GetDateTime(3),
-                Message = DeserializeMessage<T>(reader.GetString(4))
+                MsgId = reader.GetInt64(msgIdOrdinal),
+                ReadCt = reader.GetInt32(readCtOrdinal),
+                EnqueuedAt = reader.GetDateTime(enqueuedAtOrdinal),
+                Vt = reader.GetDateTime(vtOrdinal),
+                Message = DeserializeMessage<T>(reader.GetString(messageOrdinal))
             });
         }
         return result;

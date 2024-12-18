@@ -206,4 +206,17 @@ public interface INpgmqClient
     /// <param name="msgId">The message ID.</param>
     /// <param name="vtOffset">The number of seconds to be added to the current Vt.</param>
     Task SetVtAsync(string queueName, long msgId, int vtOffset);
+
+    /// <summary>
+    /// Get metrics for all queues.
+    /// </summary>
+    /// <returns>A list of <see cref="NpgmqMetricsResult" /></returns>
+    Task<List<NpgmqMetricsResult>> GetMetricsAsync();
+
+    /// <summary>
+    /// Get metrics for a specific queue.
+    /// </summary>
+    /// <param name="queueName">The queue name.</param>
+    /// <returns>An <see cref="NpgmqMetricsResult" /></returns>
+    Task<NpgmqMetricsResult> GetMetricsAsync(string queueName);
 }

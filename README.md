@@ -8,10 +8,19 @@ A .NET client for [Postgres Message Queue](https://github.com/tembo-io/pgmq) (PG
 
 ## Compatibility
 
-| PGMQ Version   | Compatibility                                                                                                                                                                                              |
-|----------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| 1.5.0+         | Fully supported                                                                                                                                                                                            |
-| 0.31.0 - 1.4.5 | The following method overloads are *not* supported, since they were introduced in PGMQ 1.5.0:<br/> - `SendAsync(string, T, DateTimeOffset)`<br/>- `SendBatchAsync(string, IEnumerable<T>, DateTimeOffset)` |
+Npgmq is compatible with PGMQ version 1.5.0 and later.
+
+### Backward Compatibility
+
+An attempt is made to maintain compatibility with previous versions of PGMQ, but there may be limitations when using Npgmq with older versions of PGMQ.
+
+Known limitations when using Npgmq with older versions of PGMQ:
+* The `SendAsync(string, T, DateTimeOffset)` and `SendBatchAsync(string, IEnumerable<T>, DateTimeOffset)` method overloads will throw an exception when used with PGMQ < 1.5.0.
+* `NpgmqMetricResult.VisibleQueueLength` will always be -1 when used with PGMQ < 1.5.0.
+* `GetMetricsAsync()` and `GetMetricsAsync(string)` require PGMQ 0.33.1 or later.
+* PGMQ < 0.31.0 is not supported.
+
+See the [build workflow](.github/workflows/build.yml) for the versions of PGMQ that are tested.
 
 ## Installation
 To install the package via [Nuget](https://www.nuget.org/packages/Npgmq/), run the following command:

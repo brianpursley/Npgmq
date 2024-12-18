@@ -277,6 +277,7 @@ public sealed class NpgmqClientTest : IDisposable
         // Assert
         Assert.NotNull(msg);
         Assert.True(msg.EnqueuedAt < DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, msg.EnqueuedAt.Offset);
         Assert.Equal(1, msg.ReadCt);
         msg.Message.ShouldDeepEqual(new TestMessage
         {
@@ -387,6 +388,7 @@ public sealed class NpgmqClientTest : IDisposable
         Assert.NotNull(msg);
         Assert.Equal(msgId, msg.MsgId);
         Assert.True(msg.EnqueuedAt < DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, msg.EnqueuedAt.Offset);
         Assert.Equal(0, msg.ReadCt);
         msg.Message.ShouldDeepEqual(new TestMessage
         {
@@ -477,7 +479,9 @@ public sealed class NpgmqClientTest : IDisposable
         Assert.NotNull(msg);
         Assert.Equal(msgId, msg.MsgId);
         Assert.True(msg.EnqueuedAt < DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, msg.EnqueuedAt.Offset);
         Assert.True(msg.Vt > DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, msg.Vt.Offset);
         Assert.Equal(1, msg.ReadCt);
         msg.Message.ShouldDeepEqual(new TestMessage
         {
@@ -507,7 +511,9 @@ public sealed class NpgmqClientTest : IDisposable
         Assert.NotNull(msg);
         Assert.Equal(msgId, msg.MsgId);
         Assert.True(msg.EnqueuedAt < DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, msg.EnqueuedAt.Offset);
         Assert.True(msg.Vt > DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, msg.Vt.Offset);
         Assert.Equal(1, msg.ReadCt);
         msg.Message.ShouldDeepEqual("{\"Bar\": \"Test\", \"Baz\": \"2023-09-01T01:23:45-04:00\", \"Foo\": 123}");
     }
@@ -796,5 +802,154 @@ public sealed class NpgmqClientTest : IDisposable
         // Assert
         Assert.NotNull(message2);
         Assert.Equal(msgId, message2.MsgId);
+    }
+
+    [Fact]
+    public async Task GetMetricsAsync_should_return_metrics_for_a_single_queue()
+    {
+        // Arrange
+        await ResetTestQueueAsync();
+        
+        var metrics1 = await _sut.GetMetricsAsync(TestQueueName);
+        await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 1 });
+        await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 2 });
+        var msgId3 = await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 3 });
+        var msgId4 = await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 4 });
+        await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 5 });
+        await _sut.DeleteAsync(TestQueueName, msgId3);        
+        await _sut.ArchiveAsync(TestQueueName, msgId4);
+
+        // Act
+        var metrics2 = await _sut.GetMetricsAsync(TestQueueName);
+        await _sut.ReadAsync<string>(TestQueueName);
+        var metrics3 = await _sut.GetMetricsAsync(TestQueueName);
+        await _sut.PurgeQueueAsync(TestQueueName);
+        var metrics4 = await _sut.GetMetricsAsync(TestQueueName);
+        
+        // Assert
+        Assert.Equal(TestQueueName, metrics1.QueueName);
+        Assert.Equal(0, metrics1.QueueLength);
+        Assert.Null(metrics1.NewestMessageAge);
+        Assert.Null(metrics1.OldestMessageAge);
+        if (await IsMinPgmqVersion("0.33.1"))
+        {
+            // There was a bug in PGMQ prior to 0.33.1 that caused the total messages to be incorrect,
+            // so we only want to check the result if the version is 0.33.1 or later.
+            Assert.Equal(0, metrics1.TotalMessages);
+        }
+        Assert.True(metrics1.ScrapeTime < DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, metrics1.ScrapeTime.Offset);
+        if (await IsMinPgmqVersion("1.5.0"))
+        {
+            Assert.Equal(0, metrics1.QueueVisibleLength);
+        }
+        else
+        {
+            // The QueueVisibleLength metric was added in PGMQ 1.5.0, so it will be -1 if the version is older.
+            Assert.Equal(-1, metrics1.QueueVisibleLength);
+        }
+
+        Assert.Equal(TestQueueName, metrics2.QueueName);
+        Assert.Equal(3, metrics2.QueueLength);
+        Assert.True(metrics2.NewestMessageAge >= 0);
+        Assert.True(metrics2.OldestMessageAge >= 0);
+        if (await IsMinPgmqVersion("0.33.1"))
+        {
+            // There was a bug in PGMQ prior to 0.33.1 that caused the total messages to be incorrect,
+            // so we only want to check the result if the version is 0.33.1 or later.
+            Assert.Equal(5, metrics2.TotalMessages);
+        }
+        Assert.True(metrics2.ScrapeTime < DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, metrics1.ScrapeTime.Offset);
+        if (await IsMinPgmqVersion("1.5.0"))
+        {
+            Assert.Equal(3, metrics2.QueueVisibleLength);
+        }
+        else
+        {
+            // The QueueVisibleLength metric was added in PGMQ 1.5.0, so it will be -1 if the version is older.
+            Assert.Equal(-1, metrics2.QueueVisibleLength);
+        }
+
+        Assert.Equal(TestQueueName, metrics3.QueueName);
+        Assert.Equal(3, metrics3.QueueLength);
+        Assert.True(metrics3.NewestMessageAge >= 0);
+        Assert.True(metrics3.OldestMessageAge >= 0);
+        if (await IsMinPgmqVersion("0.33.1"))
+        {
+            // There was a bug in PGMQ prior to 0.33.1 that caused the total messages to be incorrect,
+            // so we only want to check the result if the version is 0.33.1 or later.
+            Assert.Equal(5, metrics3.TotalMessages);
+        }
+        Assert.True(metrics3.ScrapeTime < DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, metrics1.ScrapeTime.Offset);
+        if (await IsMinPgmqVersion("1.5.0"))
+        {
+            Assert.Equal(2, metrics3.QueueVisibleLength);
+        }
+        else
+        {
+            // The QueueVisibleLength metric was added in PGMQ 1.5.0, so it will be -1 if the version is older.
+            Assert.Equal(-1, metrics3.QueueVisibleLength);
+        }
+        
+        Assert.Equal(TestQueueName, metrics4.QueueName);
+        Assert.Equal(0, metrics4.QueueLength);
+        Assert.Null(metrics1.NewestMessageAge);
+        Assert.Null(metrics1.OldestMessageAge);
+        if (await IsMinPgmqVersion("0.33.1"))
+        {
+            // There was a bug in PGMQ prior to 0.33.1 that caused the total messages to be incorrect,
+            // so we only want to check the result if the version is 0.33.1 or later.
+            Assert.Equal(5, metrics4.TotalMessages);
+        }
+        Assert.True(metrics4.ScrapeTime < DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, metrics1.ScrapeTime.Offset);
+        if (await IsMinPgmqVersion("1.5.0"))
+        {
+            Assert.Equal(0, metrics4.QueueVisibleLength);
+        }
+        else
+        {
+            // The QueueVisibleLength metric was added in PGMQ 1.5.0, so it will be -1 if the version is older.
+            Assert.Equal(-1, metrics4.QueueVisibleLength);
+        }
+    }
+    
+    [Fact]
+    public async Task GetMetricsAsync_should_return_metrics_for_all_queues()
+    {
+        // Create some queues just for testing this function.
+        var testMetricsQueueName1 = TestQueueName + "_m1";
+        var testMetricsQueueName2 = TestQueueName + "_m2";
+        var testMetricsQueueName3 = TestQueueName + "_m3";
+        try
+        {
+            // Arrange
+            await ResetTestQueueAsync();
+            await _sut.CreateQueueAsync(testMetricsQueueName1);
+            await _sut.CreateQueueAsync(testMetricsQueueName2);
+            await _sut.CreateQueueAsync(testMetricsQueueName3);
+
+            await _sut.SendAsync(testMetricsQueueName1, new TestMessage { Foo = 1 });
+            await _sut.SendAsync(testMetricsQueueName1, new TestMessage { Foo = 2 });
+            await _sut.SendAsync(testMetricsQueueName1, new TestMessage { Foo = 3 });
+            await _sut.SendAsync(testMetricsQueueName2, new TestMessage { Foo = 4 });
+            await _sut.SendAsync(testMetricsQueueName2, new TestMessage { Foo = 5 });
+
+            // Act
+            var allMetrics = await _sut.GetMetricsAsync();
+
+            // Assert
+            Assert.Equal(3, allMetrics.Single(x => x.QueueName == testMetricsQueueName1).QueueLength);
+            Assert.Equal(2, allMetrics.Single(x => x.QueueName == testMetricsQueueName2).QueueLength);
+            Assert.Equal(0, allMetrics.Single(x => x.QueueName == testMetricsQueueName3).QueueLength);
+        }
+        finally
+        {
+            try { await _sut.DropQueueAsync(testMetricsQueueName1); } catch { /* ignored */ }
+            try { await _sut.DropQueueAsync(testMetricsQueueName2); } catch { /* ignored */ }
+            try { await _sut.DropQueueAsync(testMetricsQueueName3); } catch { /* ignored */ }
+        }
     }
 }
