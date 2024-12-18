@@ -43,7 +43,7 @@ public class NpgmqClient : INpgmqClient
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@msg_id", msgId);
                 var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
-                return Convert.ToBoolean(result);
+                return result is not null && Convert.ToBoolean(result);
             }
         }
         catch (Exception ex)
@@ -123,7 +123,7 @@ public class NpgmqClient : INpgmqClient
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@msg_id", msgId);
                 var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
-                return Convert.ToBoolean(result!);
+                return result is not null && Convert.ToBoolean(result);
             }
         }
         catch (Exception ex)
