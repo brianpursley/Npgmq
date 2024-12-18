@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using Dapper;
 using DeepEqual.Syntax;
@@ -14,11 +15,12 @@ public sealed class NpgmqClientTest : IDisposable
     private readonly NpgsqlConnection _connection;
     private readonly NpgmqClient _sut;
 
+    [SuppressMessage("ReSharper", "UnusedAutoPropertyAccessor.Local")]
     private class TestMessage
     {
-        public int? Foo { get; set; }
-        public string? Bar { get; set; }
-        public DateTimeOffset? Baz { get; set; }
+        public int? Foo { get; init; }
+        public string? Bar { get; init; }
+        public DateTimeOffset? Baz { get; init; }
     }
 
     public NpgmqClientTest()
@@ -666,13 +668,13 @@ public sealed class NpgmqClientTest : IDisposable
     }
 
     [Fact]
-    public async Task SendDelayAsync_should_add_message_with_future_vt()
+    public async Task SendAsync_with_int_delay_should_add_message_with_future_vt()
     {
         // Arrange
         await ResetTestQueueAsync();
         
         // Act
-        var msgId = await _sut.SendDelayAsync(TestQueueName, new TestMessage
+        var msgId = await _sut.SendAsync(TestQueueName, new TestMessage
         {
             Foo = 123,
             Bar = "Test",
@@ -682,6 +684,27 @@ public sealed class NpgmqClientTest : IDisposable
         // Assert
         Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
         Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName} WHERE vt > CURRENT_TIMESTAMP;"));
+        Assert.Equal(msgId, await _connection.ExecuteScalarAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} LIMIT 1;"));
+    }
+
+    [Fact]
+    public async Task SendAsync_with_timestamp_delay_should_add_message_with_a_specified_vt()
+    {
+        // Arrange
+        await ResetTestQueueAsync();
+        var delay = DateTimeOffset.UtcNow.AddHours(1);
+
+        // Act
+        var msgId = await _sut.SendAsync(TestQueueName, new TestMessage
+        {
+            Foo = 123,
+            Bar = "Test",
+            Baz = DateTimeOffset.Parse("2023-09-01T01:23:45-04:00")
+        }, delay);
+
+        // Assert
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(1, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName} WHERE vt = @expected_vt;", new { expected_vt = delay }));
         Assert.Equal(msgId, await _connection.ExecuteScalarAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} LIMIT 1;"));
     }
 
@@ -701,6 +724,47 @@ public sealed class NpgmqClientTest : IDisposable
 
         // Assert
         Assert.Equal(3, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(msgIds.OrderBy(x => x), (await _connection.QueryAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} ORDER BY msg_id;")).ToList());
+    }
+
+    [Fact]
+    public async Task SendBatchAsync_with_int_delay_should_add_multiple_messages_with_future_vt()
+    {
+        // Arrange
+        await ResetTestQueueAsync();
+        
+        // Act
+        var msgIds = await _sut.SendBatchAsync(TestQueueName, new List<TestMessage>
+        {
+            new() { Foo = 1 },
+            new() { Foo = 2 },
+            new() { Foo = 3 }
+        }, 100);
+
+        // Assert
+        Assert.Equal(3, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(3, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName} WHERE vt > CURRENT_TIMESTAMP;"));
+        Assert.Equal(msgIds.OrderBy(x => x), (await _connection.QueryAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} ORDER BY msg_id;")).ToList());
+    }
+
+    [Fact]
+    public async Task SendBatchAsync_with_timestamp_delay_should_add_multiple_messages_with_a_specified_vt()
+    {
+        // Arrange
+        await ResetTestQueueAsync();
+        var delay = DateTimeOffset.UtcNow.AddHours(1);
+        
+        // Act
+        var msgIds = await _sut.SendBatchAsync(TestQueueName, new List<TestMessage>
+        {
+            new() { Foo = 1 },
+            new() { Foo = 2 },
+            new() { Foo = 3 }
+        }, delay);
+
+        // Assert
+        Assert.Equal(3, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(3, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName} WHERE vt = @expected_vt;", new { expected_vt = delay }));
         Assert.Equal(msgIds.OrderBy(x => x), (await _connection.QueryAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} ORDER BY msg_id;")).ToList());
     }
 

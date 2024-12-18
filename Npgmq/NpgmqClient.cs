@@ -355,28 +355,37 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task<long> SendAsync<T>(string queueName, T message) where T : class
-    {
-        try
-        {
-            return await SendDelayAsync(queueName, message, 0).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            throw new NpgmqException($"Failed to send message to queue {queueName}.", ex);
-        }
-    }
+    public Task<long> SendAsync<T>(string queueName, T message) where T : class => 
+        SendAsync(queueName, message, null, null);
+        
+    public Task<long> SendAsync<T>(string queueName, T message, int delay) where T : class =>
+        SendAsync(queueName, message, delay, null);
 
-    public async Task<long> SendDelayAsync<T>(string queueName, T message, int delay) where T : class
+    public Task<long> SendAsync<T>(string queueName, T message, DateTimeOffset delay) where T : class =>
+        SendAsync(queueName, message, null, delay);
+    
+    private async Task<long> SendAsync<T>(string queueName, T message, int? delaySeconds, DateTimeOffset? delayTimestamp) where T : class
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT * FROM pgmq.send(@queue_name, @message, @delay);").ConfigureAwait(false);
+            if (delaySeconds.HasValue && delayTimestamp.HasValue)
+            {
+                throw new ArgumentException("Only one of delaySeconds and delayTimestamp can be set.");
+            }
+        
+            var cmd = await _commandFactory.CreateAsync("SELECT * FROM pgmq.send(@queue_name, @msg, @delay);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
-                cmd.Parameters.AddWithValue("@message", NpgsqlDbType.Jsonb, SerializeMessage(message));
-                cmd.Parameters.AddWithValue("@delay", delay);
+                cmd.Parameters.AddWithValue("@msg", NpgsqlDbType.Jsonb, SerializeMessage(message));
+                if (delayTimestamp.HasValue)
+                {
+                    cmd.Parameters.AddWithValue("@delay", delayTimestamp.Value);
+                }
+                else
+                {
+                    cmd.Parameters.AddWithValue("@delay", delaySeconds ?? 0);
+                }
                 var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
                 return Convert.ToInt64(result!);
             }
@@ -386,16 +395,42 @@ public class NpgmqClient : INpgmqClient
             throw new NpgmqException($"Failed to send message to queue {queueName}.", ex);
         }
     }
+    
+    [Obsolete("Use SendAsync instead.")]
+    public Task<long> SendDelayAsync<T>(string queueName, T message, int delay) where T : class =>
+        SendAsync(queueName, message, delay, null);
 
-    public async Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages) where T : class
+    public Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages) where T : class =>
+        SendBatchAsync(queueName, messages, null, null);
+    
+    public Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages, int delay) where T : class =>
+        SendBatchAsync(queueName, messages, delay, null);
+    
+    public Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages, DateTimeOffset delay) where T : class =>
+        SendBatchAsync(queueName, messages, null, delay);
+    
+    private async Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages, int? delaySeconds, DateTimeOffset? delayTimestamp) where T : class
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT * FROM pgmq.send_batch(@queue_name, @messages);").ConfigureAwait(false);
+            if (delaySeconds.HasValue && delayTimestamp.HasValue)
+            {
+                throw new ArgumentException("Only one of delaySeconds and delayTimestamp can be set.");
+            }
+
+            var cmd = await _commandFactory.CreateAsync("SELECT * FROM pgmq.send_batch(@queue_name, @msgs, @delay);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
-                cmd.Parameters.AddWithValue("@messages", NpgsqlDbType.Array | NpgsqlDbType.Jsonb, messages.Select(SerializeMessage).ToArray());
+                cmd.Parameters.AddWithValue("@msgs", NpgsqlDbType.Array | NpgsqlDbType.Jsonb, messages.Select(SerializeMessage).ToArray());
+                if (delayTimestamp.HasValue)
+                {
+                    cmd.Parameters.AddWithValue("@delay", delayTimestamp.Value);
+                }
+                else
+                {
+                    cmd.Parameters.AddWithValue("@delay", delaySeconds ?? 0);
+                }
                 var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {

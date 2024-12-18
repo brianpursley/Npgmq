@@ -140,13 +140,34 @@ public interface INpgmqClient
     Task<long> SendAsync<T>(string queueName, T message) where T : class;
     
     /// <summary>
+    /// Send a message to a queue, visible after a specified number of seconds.
+    /// </summary>
+    /// <param name="queueName">The queue name.</param>
+    /// <param name="message">The message to send.</param>
+    /// <param name="delay">Number of seconds until the message becomes visible.</param>
+    /// <typeparam name="T">The message type.</typeparam>
+    /// <returns>The ID of the sent message.</returns>
+    Task<long> SendAsync<T>(string queueName, T message, int delay) where T : class;
+    
+    /// <summary>
+    /// Send a message to a queue, visible after a specified date/time.
+    /// </summary>
+    /// <param name="queueName">The queue name.</param>
+    /// <param name="message">The message to send.</param>
+    /// <param name="delay">Date/Time at which the message becomes visible.</param>
+    /// <typeparam name="T">The message type.</typeparam>
+    /// <returns>The ID of the sent message.</returns>
+    Task<long> SendAsync<T>(string queueName, T message, DateTimeOffset delay) where T : class;
+    
+    /// <summary>
     /// Send a message to a queue with a delayed vt.
     /// </summary>
     /// <param name="queueName">The queue name.</param>
     /// <param name="message">The message to send.</param>
-    /// <param name="delay">The delay, in seconds.</param>
+    /// <param name="delay">Number of seconds until the message becomes visible.</param>
     /// <typeparam name="T">The message type.</typeparam>
     /// <returns>The ID of the sent message.</returns>
+    [Obsolete("Use SendAsync instead.")]
     Task<long> SendDelayAsync<T>(string queueName, T message, int delay) where T : class;
 
     /// <summary>
@@ -157,6 +178,26 @@ public interface INpgmqClient
     /// <typeparam name="T">The message type.</typeparam>
     /// <returns>The IDs of the sent messages.</returns>
     Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages) where T : class;
+
+    /// <summary>
+    /// Send multiple messages to a queue, visible after a specified number of seconds.
+    /// </summary>
+    /// <param name="queueName">The queue name.</param>
+    /// <param name="messages">The messages to send.</param>
+    /// <param name="delay">Number of seconds until the message becomes visible.</param>
+    /// <typeparam name="T">The message type.</typeparam>
+    /// <returns>The IDs of the sent messages.</returns>
+    Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages, int delay) where T : class;
+
+    /// <summary>
+    /// Send multiple messages to a queue, visible after a specified date/time.
+    /// </summary>
+    /// <param name="queueName">The queue name.</param>
+    /// <param name="messages">The messages to send.</param>
+    /// <param name="delay">Date/Time at which the message becomes visible.</param>
+    /// <typeparam name="T">The message type.</typeparam>
+    /// <returns>The IDs of the sent messages.</returns>
+    Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages, DateTimeOffset delay) where T : class;
 
     /// <summary>
     /// Adjust the Vt of an existing message.
