@@ -57,6 +57,22 @@ public sealed class NpgmqClientTest : IDisposable
     }
 
     [Fact]
+    public async Task NpgmqClient_should_work_when_created_using_a_connection_string()
+    {
+        // Arrange
+        await ResetTestQueueAsync();
+        var sut = new NpgmqClient(_connectionString); // Don't use _sut here, as we want to test a new instance
+        
+        // Act
+        await sut.SendAsync(TestQueueName, new TestMessage { Foo = 123 });
+        var msg = await sut.ReadAsync<TestMessage>(TestQueueName);
+
+        // Assert
+        Assert.NotNull(msg);
+        msg.Message.ShouldDeepEqual(new TestMessage { Foo = 123 });
+    }
+
+    [Fact]
     public async Task ArchiveAsync_should_archive_a_single_message()
     {
         // Arrange

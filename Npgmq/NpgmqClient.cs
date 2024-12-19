@@ -16,7 +16,7 @@ public class NpgmqClient : INpgmqClient
     private readonly NpgmqCommandFactory _commandFactory;
 
     /// <summary>
-    /// Create a new <see cref="NpgmqClient"/>.
+    /// Create a new <see cref="NpgmqClient"/> using a connection string.
     /// </summary>
     /// <param name="connectionString">The connection string.</param>
     public NpgmqClient(string connectionString)
@@ -25,7 +25,7 @@ public class NpgmqClient : INpgmqClient
     }
 
     /// <summary>
-    /// Create a new <see cref="NpgmqClient"/>.
+    /// Create a new <see cref="NpgmqClient"/> using an existing <see cref="NpgsqlConnection"/>.
     /// </summary>
     /// <param name="connection">The connection to use.</param>
     public NpgmqClient(NpgsqlConnection connection)
