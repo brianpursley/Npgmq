@@ -16,9 +16,9 @@ public sealed class NpgmqClientTest : IDisposable
 
     private class TestMessage
     {
-        public int? Foo { get; set; }
-        public string? Bar { get; set; }
-        public DateTimeOffset? Baz { get; set; }
+        public int? Foo { get; init; }
+        public string? Bar { get; init; }
+        public DateTimeOffset? Baz { get; init; }
     }
 
     public NpgmqClientTest()
@@ -46,6 +46,28 @@ public sealed class NpgmqClientTest : IDisposable
             await _sut.DropQueueAsync(TestQueueName);
         }
         await _sut.CreateQueueAsync(TestQueueName);
+    }
+
+    private async Task<bool> IsMinPgmqVersion(string minVersion)
+    {
+        var version = await _connection.ExecuteScalarAsync<string>("select extversion from pg_extension where extname = 'pgmq';");
+        return version is not null && new Version(version) >= new Version(minVersion);
+    }
+
+    [Fact]
+    public async Task NpgmqClient_should_work_when_created_using_a_connection_string()
+    {
+        // Arrange
+        await ResetTestQueueAsync();
+        var sut = new NpgmqClient(_connectionString); // Don't use _sut here, as we want to test a new instance
+        
+        // Act
+        await sut.SendAsync(TestQueueName, new TestMessage { Foo = 123 });
+        var msg = await sut.ReadAsync<TestMessage>(TestQueueName);
+
+        // Assert
+        Assert.NotNull(msg);
+        msg.Message.ShouldDeepEqual(new TestMessage { Foo = 123 });
     }
 
     [Fact]
@@ -213,21 +235,65 @@ public sealed class NpgmqClientTest : IDisposable
     [Fact]
     public async Task InitAsync_should_initialize_pgmq_extension()
     {
-        // Arrange
-        await _connection.ExecuteAsync("DROP EXTENSION IF EXISTS pgmq CASCADE;");
-        Assert.Equal(0, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pg_extension WHERE extname = 'pgmq';"));
+        try
+        {
+            // Arrange
+            await _connection.ExecuteAsync("DROP EXTENSION IF EXISTS pgmq CASCADE;");
+            Assert.Equal(0, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pg_extension WHERE extname = 'pgmq';"));
 
+            // Act
+            await _sut.InitAsync();
+
+            // Assert
+            Assert.Equal(1, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pg_extension WHERE extname = 'pgmq';"));
+
+            // Act (Calling it again should not throw an exception)
+            await _sut.InitAsync();
+
+            // Assert
+            Assert.Equal(1, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pg_extension WHERE extname = 'pgmq';"));
+        }
+        finally
+        {
+            // Cleanup
+            await _sut.InitAsync();
+        }
+    }
+
+    [Fact]
+    public async Task GetPgmqVersionAsync_should_return_pgmq_version()
+    {
+        // Arrange
+        var expectedVersionString = await _connection.ExecuteScalarAsync<string>("SELECT extversion FROM pg_extension WHERE extname = 'pgmq';");
+        var expectedVersion = new Version(expectedVersionString!);
+        
         // Act
-        await _sut.InitAsync();
+        var version = await _sut.GetPgmqVersionAsync();
         
         // Assert
-        Assert.Equal(1, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pg_extension WHERE extname = 'pgmq';"));
-        
-        // Act (Calling it again should not throw an exception)
-        await _sut.InitAsync();
-        
-        // Assert
-        Assert.Equal(1, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pg_extension WHERE extname = 'pgmq';"));
+        Assert.Equal(expectedVersion, version);
+    }
+
+    [Fact]
+    public async Task GetPgmqVersionAsync_should_return_null_if_pgmq_is_not_installed()
+    {
+        try
+        {
+            // Arrange
+            await _connection.ExecuteAsync("DROP EXTENSION IF EXISTS pgmq CASCADE;");
+            Assert.Equal(0, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pg_extension WHERE extname = 'pgmq';"));
+
+            // Act
+            var version = await _sut.GetPgmqVersionAsync();
+
+            // Assert
+            Assert.Null(version);
+        }
+        finally
+        {
+            // Cleanup
+            await _sut.InitAsync();
+        }
     }
 
     [Fact]
@@ -269,6 +335,7 @@ public sealed class NpgmqClientTest : IDisposable
         // Assert
         Assert.NotNull(msg);
         Assert.True(msg.EnqueuedAt < DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, msg.EnqueuedAt.Offset);
         Assert.Equal(1, msg.ReadCt);
         msg.Message.ShouldDeepEqual(new TestMessage
         {
@@ -379,6 +446,7 @@ public sealed class NpgmqClientTest : IDisposable
         Assert.NotNull(msg);
         Assert.Equal(msgId, msg.MsgId);
         Assert.True(msg.EnqueuedAt < DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, msg.EnqueuedAt.Offset);
         Assert.Equal(0, msg.ReadCt);
         msg.Message.ShouldDeepEqual(new TestMessage
         {
@@ -469,7 +537,9 @@ public sealed class NpgmqClientTest : IDisposable
         Assert.NotNull(msg);
         Assert.Equal(msgId, msg.MsgId);
         Assert.True(msg.EnqueuedAt < DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, msg.EnqueuedAt.Offset);
         Assert.True(msg.Vt > DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, msg.Vt.Offset);
         Assert.Equal(1, msg.ReadCt);
         msg.Message.ShouldDeepEqual(new TestMessage
         {
@@ -499,7 +569,9 @@ public sealed class NpgmqClientTest : IDisposable
         Assert.NotNull(msg);
         Assert.Equal(msgId, msg.MsgId);
         Assert.True(msg.EnqueuedAt < DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, msg.EnqueuedAt.Offset);
         Assert.True(msg.Vt > DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, msg.Vt.Offset);
         Assert.Equal(1, msg.ReadCt);
         msg.Message.ShouldDeepEqual("{\"Bar\": \"Test\", \"Baz\": \"2023-09-01T01:23:45-04:00\", \"Foo\": 123}");
     }
@@ -666,13 +738,13 @@ public sealed class NpgmqClientTest : IDisposable
     }
 
     [Fact]
-    public async Task SendDelayAsync_should_add_message_with_future_vt()
+    public async Task SendAsync_with_delay_should_add_message_with_future_vt()
     {
         // Arrange
         await ResetTestQueueAsync();
         
         // Act
-        var msgId = await _sut.SendDelayAsync(TestQueueName, new TestMessage
+        var msgId = await _sut.SendAsync(TestQueueName, new TestMessage
         {
             Foo = 123,
             Bar = "Test",
@@ -705,6 +777,26 @@ public sealed class NpgmqClientTest : IDisposable
     }
 
     [Fact]
+    public async Task SendBatchAsync_with_delay_should_add_multiple_messages_with_future_vt()
+    {
+        // Arrange
+        await ResetTestQueueAsync();
+        
+        // Act
+        var msgIds = await _sut.SendBatchAsync(TestQueueName, new List<TestMessage>
+        {
+            new() { Foo = 1 },
+            new() { Foo = 2 },
+            new() { Foo = 3 }
+        }, 100);
+
+        // Assert
+        Assert.Equal(3, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(3, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName} WHERE vt > CURRENT_TIMESTAMP;"));
+        Assert.Equal(msgIds.OrderBy(x => x), (await _connection.QueryAsync<long>($"SELECT msg_id FROM pgmq.q_{TestQueueName} ORDER BY msg_id;")).ToList());
+    }
+
+    [Fact]
     public async Task SetVtAsync_should_change_vt_for_a_message()
     {
         // Arrange
@@ -722,5 +814,100 @@ public sealed class NpgmqClientTest : IDisposable
         // Assert
         Assert.NotNull(message2);
         Assert.Equal(msgId, message2.MsgId);
+    }
+
+    [SkippableFact]
+    public async Task GetMetricsAsync_should_return_metrics_for_a_single_queue()
+    {
+        Skip.IfNot(await IsMinPgmqVersion("0.33.1"), "PGMQ versions before 0.33.1 have a bug in the total messages calculation.");
+        
+        // Arrange
+        await ResetTestQueueAsync();
+        
+        var metrics1 = await _sut.GetMetricsAsync(TestQueueName);
+        await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 1 });
+        await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 2 });
+        var msgId3 = await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 3 });
+        var msgId4 = await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 4 });
+        await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 5 });
+        await _sut.DeleteAsync(TestQueueName, msgId3);        
+        await _sut.ArchiveAsync(TestQueueName, msgId4);
+
+        // Act
+        var metrics2 = await _sut.GetMetricsAsync(TestQueueName);
+        await _sut.ReadAsync<string>(TestQueueName);
+        var metrics3 = await _sut.GetMetricsAsync(TestQueueName);
+        await _sut.PurgeQueueAsync(TestQueueName);
+        var metrics4 = await _sut.GetMetricsAsync(TestQueueName);
+        
+        // Assert
+        Assert.Equal(TestQueueName, metrics1.QueueName);
+        Assert.Equal(0, metrics1.QueueLength);
+        Assert.Null(metrics1.NewestMessageAge);
+        Assert.Null(metrics1.OldestMessageAge);
+        Assert.Equal(0, metrics1.TotalMessages);
+        Assert.True(metrics1.ScrapeTime < DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, metrics1.ScrapeTime.Offset);
+
+        Assert.Equal(TestQueueName, metrics2.QueueName);
+        Assert.Equal(3, metrics2.QueueLength);
+        Assert.True(metrics2.NewestMessageAge >= 0);
+        Assert.True(metrics2.OldestMessageAge >= 0);
+        Assert.Equal(5, metrics2.TotalMessages);
+        Assert.True(metrics2.ScrapeTime < DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, metrics1.ScrapeTime.Offset);
+
+        Assert.Equal(TestQueueName, metrics3.QueueName);
+        Assert.Equal(3, metrics3.QueueLength);
+        Assert.True(metrics3.NewestMessageAge >= 0);
+        Assert.True(metrics3.OldestMessageAge >= 0);
+        Assert.Equal(5, metrics3.TotalMessages);
+        Assert.True(metrics3.ScrapeTime < DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, metrics1.ScrapeTime.Offset);
+        
+        Assert.Equal(TestQueueName, metrics4.QueueName);
+        Assert.Equal(0, metrics4.QueueLength);
+        Assert.Null(metrics1.NewestMessageAge);
+        Assert.Null(metrics1.OldestMessageAge);
+        Assert.Equal(5, metrics4.TotalMessages);
+        Assert.True(metrics4.ScrapeTime < DateTimeOffset.UtcNow);
+        Assert.Equal(TimeSpan.Zero, metrics1.ScrapeTime.Offset);
+    }
+    
+    [Fact]
+    public async Task GetMetricsAsync_should_return_metrics_for_all_queues()
+    {
+        // Create some queues just for testing this function.
+        var testMetricsQueueName1 = TestQueueName + "_m1";
+        var testMetricsQueueName2 = TestQueueName + "_m2";
+        var testMetricsQueueName3 = TestQueueName + "_m3";
+        try
+        {
+            // Arrange
+            await _sut.CreateQueueAsync(testMetricsQueueName1);
+            await _sut.CreateQueueAsync(testMetricsQueueName2);
+            await _sut.CreateQueueAsync(testMetricsQueueName3);
+
+            await _sut.SendAsync(testMetricsQueueName1, new TestMessage { Foo = 1 });
+            await _sut.SendAsync(testMetricsQueueName1, new TestMessage { Foo = 2 });
+            await _sut.SendAsync(testMetricsQueueName1, new TestMessage { Foo = 3 });
+            await _sut.SendAsync(testMetricsQueueName2, new TestMessage { Foo = 4 });
+            await _sut.SendAsync(testMetricsQueueName2, new TestMessage { Foo = 5 });
+
+            // Act
+            var allMetrics = await _sut.GetMetricsAsync();
+
+            // Assert
+            Assert.Equal(3, allMetrics.Single(x => x.QueueName == testMetricsQueueName1).QueueLength);
+            Assert.Equal(2, allMetrics.Single(x => x.QueueName == testMetricsQueueName2).QueueLength);
+            Assert.Equal(0, allMetrics.Single(x => x.QueueName == testMetricsQueueName3).QueueLength);
+        }
+        finally
+        {
+            // Cleanup
+            try { await _sut.DropQueueAsync(testMetricsQueueName1); } catch { /* ignored */ }
+            try { await _sut.DropQueueAsync(testMetricsQueueName2); } catch { /* ignored */ }
+            try { await _sut.DropQueueAsync(testMetricsQueueName3); } catch { /* ignored */ }
+        }
     }
 }

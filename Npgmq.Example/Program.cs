@@ -27,7 +27,7 @@ var connectionString = configuration.GetConnectionString("ExampleDB")!;
     var msg = await npgmq.ReadAsync<MyMessageType>("example_queue");
     if (msg != null)
     {
-        Console.WriteLine($"Read message with id {msg.MsgId}: Foo = {msg.Message?.Foo}, Bar = {msg.Message?.Bar}");
+        Console.WriteLine($"Read message with id {msg.MsgId} (EnqueuedAt = {msg.EnqueuedAt}, Vt = {msg.Vt}): Foo = {msg.Message?.Foo}, Bar = {msg.Message?.Bar}");
         await npgmq.ArchiveAsync("example_queue", msg.MsgId);
     }
 }
@@ -59,13 +59,13 @@ var connectionString = configuration.GetConnectionString("ExampleDB")!;
     var msg = await npgmq.ReadAsync<MyMessageType>("example_queue");
     if (msg != null)
     {
-        Console.WriteLine($"Read message with id {msg.MsgId}: Foo = {msg.Message?.Foo}, Bar = {msg.Message?.Bar}");
+        Console.WriteLine($"Read message with id {msg.MsgId} (EnqueuedAt = {msg.EnqueuedAt}, Vt = {msg.Vt}): Foo = {msg.Message?.Foo}, Bar = {msg.Message?.Bar}");
         await npgmq.ArchiveAsync("example_queue", msg.MsgId);
     }
     msg = await npgmq.ReadAsync<MyMessageType>("example_queue");
     if (msg != null)
     {
-        Console.WriteLine($"Read message with id {msg.MsgId}: Foo = {msg.Message?.Foo}, Bar = {msg.Message?.Bar}");
+        Console.WriteLine($"Read message with id {msg.MsgId} (EnqueuedAt = {msg.EnqueuedAt}, Vt = {msg.Vt}): Foo = {msg.Message?.Foo}, Bar = {msg.Message?.Bar}");
         await npgmq.ArchiveAsync("example_queue", msg.MsgId);
     }
 }

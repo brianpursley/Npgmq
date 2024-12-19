@@ -1,4 +1,5 @@
-﻿using System.Data.Common;
+﻿using System.Data;
+using System.Data.Common;
 using System.Text.Json;
 using Npgsql;
 using NpgsqlTypes;
@@ -16,7 +17,7 @@ public class NpgmqClient : INpgmqClient
     private readonly NpgmqCommandFactory _commandFactory;
 
     /// <summary>
-    /// Create a new <see cref="NpgmqClient"/>.
+    /// Create a new <see cref="NpgmqClient"/> using a connection string.
     /// </summary>
     /// <param name="connectionString">The connection string.</param>
     public NpgmqClient(string connectionString)
@@ -25,7 +26,7 @@ public class NpgmqClient : INpgmqClient
     }
 
     /// <summary>
-    /// Create a new <see cref="NpgmqClient"/>.
+    /// Create a new <see cref="NpgmqClient"/> using an existing <see cref="NpgsqlConnection"/>.
     /// </summary>
     /// <param name="connection">The connection to use.</param>
     public NpgmqClient(NpgsqlConnection connection)
@@ -43,7 +44,7 @@ public class NpgmqClient : INpgmqClient
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@msg_id", msgId);
                 var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
-                return Convert.ToBoolean(result);
+                return result is not null && Convert.ToBoolean(result);
             }
         }
         catch (Exception ex)
@@ -60,7 +61,7 @@ public class NpgmqClient : INpgmqClient
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
-                cmd.Parameters.AddWithValue("@msg_ids", msgIds);
+                cmd.Parameters.AddWithValue("@msg_ids", msgIds.ToArray());
                 var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
@@ -123,7 +124,7 @@ public class NpgmqClient : INpgmqClient
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@msg_id", msgId);
                 var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
-                return Convert.ToBoolean(result!);
+                return result is not null && Convert.ToBoolean(result);
             }
         }
         catch (Exception ex)
@@ -192,6 +193,28 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
+    public async Task<Version?> GetPgmqVersionAsync()
+    {
+        try
+        {
+            var cmd = await _commandFactory.CreateAsync("SELECT extversion FROM pg_extension WHERE extname = 'pgmq';").ConfigureAwait(false);
+            await using (cmd.ConfigureAwait(false))
+            {
+                var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
+                return result switch
+                {
+                    string versionString => new Version(versionString),
+                    null => null,
+                    _ => throw new NpgmqException($"Unexpected result type: {result.GetType().Name}")
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException("Failed to get PGMQ version.", ex);
+        }
+    }
+    
     public async Task<List<NpgmqQueue>> ListQueuesAsync()
     {
         try
@@ -355,27 +378,18 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task<long> SendAsync<T>(string queueName, T message) where T : class
+    public Task<long> SendAsync<T>(string queueName, T message) where T : class => 
+        SendAsync(queueName, message, 0);
+        
+    public async Task<long> SendAsync<T>(string queueName, T message, int delay) where T : class
     {
         try
         {
-            return await SendDelayAsync(queueName, message, 0).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            throw new NpgmqException($"Failed to send message to queue {queueName}.", ex);
-        }
-    }
-
-    public async Task<long> SendDelayAsync<T>(string queueName, T message, int delay) where T : class
-    {
-        try
-        {
-            var cmd = await _commandFactory.CreateAsync("SELECT * FROM pgmq.send(@queue_name, @message, @delay);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT * FROM pgmq.send(@queue_name, @msg, @delay);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
-                cmd.Parameters.AddWithValue("@message", NpgsqlDbType.Jsonb, SerializeMessage(message));
+                cmd.Parameters.AddWithValue("@msg", NpgsqlDbType.Jsonb, SerializeMessage(message));
                 cmd.Parameters.AddWithValue("@delay", delay);
                 var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
                 return Convert.ToInt64(result!);
@@ -386,16 +400,24 @@ public class NpgmqClient : INpgmqClient
             throw new NpgmqException($"Failed to send message to queue {queueName}.", ex);
         }
     }
+    
+    [Obsolete("Use SendAsync instead.")]
+    public Task<long> SendDelayAsync<T>(string queueName, T message, int delay) where T : class =>
+        SendAsync(queueName, message, delay);
 
-    public async Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages) where T : class
+    public Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages) where T : class =>
+        SendBatchAsync(queueName, messages, 0);
+    
+    public async Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages, int delay) where T : class 
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT * FROM pgmq.send_batch(@queue_name, @messages);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT * FROM pgmq.send_batch(@queue_name, @msgs, @delay);").ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
-                cmd.Parameters.AddWithValue("@messages", NpgsqlDbType.Array | NpgsqlDbType.Jsonb, messages.Select(SerializeMessage).ToArray());
+                cmd.Parameters.AddWithValue("@msgs", NpgsqlDbType.Array | NpgsqlDbType.Jsonb, messages.Select(SerializeMessage).ToArray());
+                cmd.Parameters.AddWithValue("@delay", delay);
                 var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
@@ -433,6 +455,71 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
+    public async Task<List<NpgmqMetricsResult>> GetMetricsAsync()
+    {
+        try
+        {
+            var cmd = await _commandFactory.CreateAsync("SELECT queue_name, queue_length, newest_msg_age_sec, oldest_msg_age_sec, total_messages, scrape_time FROM pgmq.metrics_all();").ConfigureAwait(false);
+            await using (cmd.ConfigureAwait(false))
+            {
+                var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+                await using (reader.ConfigureAwait(false))
+                {
+                    return await ReadMetricsAsync(reader).ConfigureAwait(false);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException("Failed to get metrics.", ex);
+        }
+    }
+
+    public async Task<NpgmqMetricsResult> GetMetricsAsync(string queueName)
+    {
+        try
+        {
+            var cmd = await _commandFactory.CreateAsync("SELECT queue_name, queue_length, newest_msg_age_sec, oldest_msg_age_sec, total_messages, scrape_time FROM pgmq.metrics(@queue_name);").ConfigureAwait(false);
+            await using (cmd.ConfigureAwait(false))
+            {
+                cmd.Parameters.AddWithValue("@queue_name", queueName);
+                var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow).ConfigureAwait(false);
+                await using (reader.ConfigureAwait(false))
+                {
+                    var results = await ReadMetricsAsync(reader).ConfigureAwait(false);
+                    return results.Count switch
+                    {
+                        1 => results.Single(),
+                        0 => throw new NpgmqException("No data returned."),
+                        _ => throw new NpgmqException("Multiple results returned.")
+                    };
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to get metrics for queue {queueName}.", ex);
+        }
+    }
+    
+    private static async Task<List<NpgmqMetricsResult>> ReadMetricsAsync(DbDataReader reader)
+    {
+        var results = new List<NpgmqMetricsResult>();
+        while (await reader.ReadAsync().ConfigureAwait(false))
+        {
+            results.Add(new NpgmqMetricsResult
+            {
+                QueueName = reader.GetString(0),
+                QueueLength = reader.GetInt64(1),
+                NewestMessageAge = await reader.IsDBNullAsync(2) ? null : reader.GetInt32(2),
+                OldestMessageAge = await reader.IsDBNullAsync(3) ? null : reader.GetInt32(3),
+                TotalMessages = reader.GetInt64(4),
+                ScrapeTime = reader.GetDateTime(5)
+            });
+        }
+        return results;
+    }
+
     private static async Task<List<NpgmqMessage<T>>> ReadMessagesAsync<T>(DbDataReader reader) where T : class
     {
         var result = new List<NpgmqMessage<T>>();
@@ -444,7 +531,7 @@ public class NpgmqClient : INpgmqClient
                 ReadCt = reader.GetInt32(1),
                 EnqueuedAt = reader.GetDateTime(2),
                 Vt = reader.GetDateTime(3),
-                Message = DeserializeMessage<T>(reader.GetString(4))
+                Message = await reader.IsDBNullAsync(4) ? null : DeserializeMessage<T>(reader.GetString(4))
             });
         }
         return result;
