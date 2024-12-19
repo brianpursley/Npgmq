@@ -1,7 +1,9 @@
 ﻿using System.Data;
 using System.Data.Common;
 using System.Text.Json;
+
 using Npgsql;
+
 using NpgsqlTypes;
 
 namespace Npgmq;
@@ -214,7 +216,7 @@ public class NpgmqClient : INpgmqClient
             throw new NpgmqException("Failed to get PGMQ version.", ex);
         }
     }
-    
+
     public async Task<List<NpgmqQueue>> ListQueuesAsync()
     {
         try
@@ -378,9 +380,9 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public Task<long> SendAsync<T>(string queueName, T message) where T : class => 
+    public Task<long> SendAsync<T>(string queueName, T message) where T : class =>
         SendAsync(queueName, message, 0);
-        
+
     public async Task<long> SendAsync<T>(string queueName, T message, int delay) where T : class
     {
         try
@@ -400,15 +402,15 @@ public class NpgmqClient : INpgmqClient
             throw new NpgmqException($"Failed to send message to queue {queueName}.", ex);
         }
     }
-    
+
     [Obsolete("Use SendAsync instead.")]
     public Task<long> SendDelayAsync<T>(string queueName, T message, int delay) where T : class =>
         SendAsync(queueName, message, delay);
 
     public Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages) where T : class =>
         SendBatchAsync(queueName, messages, 0);
-    
-    public async Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages, int delay) where T : class 
+
+    public async Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages, int delay) where T : class
     {
         try
         {
@@ -501,7 +503,7 @@ public class NpgmqClient : INpgmqClient
             throw new NpgmqException($"Failed to get metrics for queue {queueName}.", ex);
         }
     }
-    
+
     private static async Task<List<NpgmqMetricsResult>> ReadMetricsAsync(DbDataReader reader)
     {
         var results = new List<NpgmqMetricsResult>();
@@ -537,8 +539,8 @@ public class NpgmqClient : INpgmqClient
         return result;
     }
 
-    private static string SerializeMessage<T>(T message) where T : class => 
-        typeof(T) == typeof(string) ? message as string ?? "" : JsonSerializer.Serialize(message); 
+    private static string SerializeMessage<T>(T message) where T : class =>
+        typeof(T) == typeof(string) ? message as string ?? "" : JsonSerializer.Serialize(message);
 
     private static T? DeserializeMessage<T>(string message) where T : class =>
         typeof(T) == typeof(string) ? (T?)(object?)message : JsonSerializer.Deserialize<T?>(message);

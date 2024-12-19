@@ -1,4 +1,5 @@
 using System.Data;
+
 using Npgsql;
 
 namespace Npgmq;
@@ -25,7 +26,7 @@ internal class NpgmqCommandFactory
         {
             await connection.OpenAsync().ConfigureAwait(false);
         }
-        
+
         return new NpgmqCommand(commandText, connection, _connection == null);
     }
 }
