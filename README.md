@@ -78,6 +78,12 @@ var npgmq = new NpgmqClient(myConnection);
 
 ## Database Connection
 
-Npgmq uses Npgsql internally to connect to the database.
+Npgmq uses [Npgsql](https://www.npgsql.org/) internally to connect to the database.
 
-The connection string passed to the `NpgmqClient` constructor should be an [Npgsql connection string](https://www.npgsql.org/doc/connection-string-parameters.html).
+### Using a Connection String
+
+If you pass an [Npgsql connection string](https://www.npgsql.org/doc/connection-string-parameters.html) to the `NpgmqClient` constructor, it will use this connection string to create an [`NpgsqlConnection`](https://www.npgsql.org/doc/api/Npgsql.NpgsqlConnection.html) object internally, and the connection lifetime will be managed by NpgmqClient.
+
+### Using a Connection Object
+
+If you pass an [`NpgsqlConnection`](https://www.npgsql.org/doc/api/Npgsql.NpgsqlConnection.html) object to the `NpgmqClient` constructor, it will use this connection instead of creating its own.
