@@ -14,7 +14,7 @@ internal class NpgmqCommand(string commandText, NpgsqlConnection connection, boo
             {
                 await Connection.CloseAsync().ConfigureAwait(false);
             }
-            
+
             await Connection.DisposeAsync().ConfigureAwait(false);
         }
     }

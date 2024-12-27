@@ -2,14 +2,18 @@
 
 A .NET client for [Postgres Message Queue](https://github.com/tembo-io/pgmq) (PGMQ).
 
+[![Build](https://github.com/brianpursley/Npgmq/actions/workflows/build.yml/badge.svg)](https://github.com/brianpursley/Npgmq/actions/workflows/build.yml)
+[![Nuget](https://img.shields.io/nuget/v/Npgmq)](https://www.nuget.org/packages/Npgmq/)
+![License](https://img.shields.io/github/license/brianpursley/Npgmq)
+
 ## Compatibility
 
 * pgmq >= 0.31.0
 
 ## Installation
-To install the package via Nuget, run the following command:
+To install the package via [Nuget](https://www.nuget.org/packages/Npgmq/), run the following command:
 
-```bash
+```shell
 dotnet add package Npgmq
 ```
 
@@ -74,6 +78,12 @@ var npgmq = new NpgmqClient(myConnection);
 
 ## Database Connection
 
-Npgmq uses Npgsql internally to connect to the database.
+Npgmq uses [Npgsql](https://www.npgsql.org/) internally to connect to the database.
 
-The connection string passed to the `NpgmqClient` constructor should be an [Npgsql connection string](https://www.npgsql.org/doc/connection-string-parameters.html).
+### Using a Connection String
+
+If you pass an [Npgsql connection string](https://www.npgsql.org/doc/connection-string-parameters.html) to the `NpgmqClient` constructor, it will use this connection string to create an [`NpgsqlConnection`](https://www.npgsql.org/doc/api/Npgsql.NpgsqlConnection.html) object internally, and the connection lifetime will be managed by NpgmqClient.
+
+### Using a Connection Object
+
+If you pass an [`NpgsqlConnection`](https://www.npgsql.org/doc/api/Npgsql.NpgsqlConnection.html) object to the `NpgmqClient` constructor, it will use this connection instead of creating its own.
