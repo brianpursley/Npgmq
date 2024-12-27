@@ -1,9 +1,6 @@
 ﻿using System.Reflection;
-
 using Microsoft.Extensions.Configuration;
-
 using Npgmq;
-
 using Npgsql;
 
 var configuration = new ConfigurationBuilder()

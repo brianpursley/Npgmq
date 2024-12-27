@@ -1,11 +1,7 @@
 using System.Text.Json;
-
 using Dapper;
-
 using DeepEqual.Syntax;
-
 using Microsoft.Extensions.Configuration;
-
 using Npgsql;
 
 namespace Npgmq.Test;

@@ -1,5 +1,4 @@
 using System.Data;
-
 using Npgsql;
 
 namespace Npgmq;
