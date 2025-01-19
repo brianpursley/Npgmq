@@ -18,12 +18,12 @@ internal class NpgmqCommandFactory
         _connectionString = connectionString;
     }
 
-    public async Task<NpgmqCommand> CreateAsync(string commandText)
+    public async Task<NpgmqCommand> CreateAsync(string commandText, CancellationToken cancellationToken = default)
     {
         var connection = _connection ?? new NpgsqlConnection(_connectionString ?? throw new NpgmqException("No connection or connection string provided."));
         if (connection.State != ConnectionState.Open)
         {
-            await connection.OpenAsync().ConfigureAwait(false);
+            await connection.OpenAsync(cancellationToken).ConfigureAwait(false);
         }
 
         return new NpgmqCommand(commandText, connection, _connection == null);
