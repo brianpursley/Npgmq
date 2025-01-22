@@ -1,9 +1,9 @@
 ﻿using System.Data;
 using System.Data.Common;
 using System.Text.Json;
+using System.Threading;
 using Npgsql;
 using NpgsqlTypes;
-using System.Threading;
 
 namespace Npgmq;
 
