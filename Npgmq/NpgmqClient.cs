@@ -34,16 +34,16 @@ public class NpgmqClient : INpgmqClient
         _commandFactory = new NpgmqCommandFactory(connection);
     }
 
-    public async Task<bool> ArchiveAsync(string queueName, long msgId)
+    public async Task<bool> ArchiveAsync(string queueName, long msgId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.archive(@queue_name, @msg_id);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.archive(@queue_name, @msg_id);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@msg_id", msgId);
-                var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
+                var result = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
                 return result is not null && Convert.ToBoolean(result);
             }
         }
@@ -53,20 +53,20 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task<List<long>> ArchiveBatchAsync(string queueName, IEnumerable<long> msgIds)
+    public async Task<List<long>> ArchiveBatchAsync(string queueName, IEnumerable<long> msgIds, CancellationToken cancellationToken = default)
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.archive(@queue_name, @msg_ids);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.archive(@queue_name, @msg_ids);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@msg_ids", msgIds.ToArray());
-                var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+                var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
                     var result = new List<long>();
-                    while (await reader.ReadAsync().ConfigureAwait(false))
+                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                     {
                         result.Add(reader.GetInt64(0));
                     }
@@ -80,15 +80,15 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task CreateQueueAsync(string queueName)
+    public async Task CreateQueueAsync(string queueName, CancellationToken cancellationToken = default)
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.create(@queue_name);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.create(@queue_name);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
-                await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -97,15 +97,15 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task CreateUnloggedQueueAsync(string queueName)
+    public async Task CreateUnloggedQueueAsync(string queueName, CancellationToken cancellationToken = default)
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.create_unlogged(@queue_name);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.create_unlogged(@queue_name);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
-                await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -114,16 +114,16 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task<bool> DeleteAsync(string queueName, long msgId)
+    public async Task<bool> DeleteAsync(string queueName, long msgId, CancellationToken cancellationToken = default)
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.delete(@queue_name, @msg_id);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.delete(@queue_name, @msg_id);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@msg_id", msgId);
-                var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
+                var result = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
                 return result is not null && Convert.ToBoolean(result);
             }
         }
@@ -133,20 +133,20 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task<List<long>> DeleteBatchAsync(string queueName, IEnumerable<long> msgIds)
+    public async Task<List<long>> DeleteBatchAsync(string queueName, IEnumerable<long> msgIds, CancellationToken cancellationToken = default)
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.delete(@queue_name, @msg_ids);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.delete(@queue_name, @msg_ids);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@msg_ids", msgIds.ToArray());
-                var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+                var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
                     var result = new List<long>();
-                    while (await reader.ReadAsync().ConfigureAwait(false))
+                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                     {
                         result.Add(reader.GetInt64(0));
                     }
@@ -160,15 +160,15 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task DropQueueAsync(string queueName)
+    public async Task DropQueueAsync(string queueName, CancellationToken cancellationToken = default)
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.drop_queue(@queue_name);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.drop_queue(@queue_name);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
-                await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -177,14 +177,14 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task InitAsync()
+    public async Task InitAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("CREATE EXTENSION IF NOT EXISTS pgmq CASCADE;").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("CREATE EXTENSION IF NOT EXISTS pgmq CASCADE;", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
-                await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -193,14 +193,14 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task<Version?> GetPgmqVersionAsync()
+    public async Task<Version?> GetPgmqVersionAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT extversion FROM pg_extension WHERE extname = 'pgmq';").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT extversion FROM pg_extension WHERE extname = 'pgmq';", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
-                var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
+                var result = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
                 return result switch
                 {
                     string versionString => new Version(versionString),
@@ -215,18 +215,18 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task<List<NpgmqQueue>> ListQueuesAsync()
+    public async Task<List<NpgmqQueue>> ListQueuesAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT queue_name, created_at, is_partitioned, is_unlogged FROM pgmq.list_queues();").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT queue_name, created_at, is_partitioned, is_unlogged FROM pgmq.list_queues();", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
-                var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+                var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
                     var result = new List<NpgmqQueue>();
-                    while (await reader.ReadAsync().ConfigureAwait(false))
+                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                     {
                         result.Add(new NpgmqQueue
                         {
@@ -246,11 +246,11 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task<NpgmqMessage<T>?> PollAsync<T>(string queueName, int vt = DefaultVt, int pollTimeoutSeconds = DefaultPollTimeoutSeconds, int pollIntervalMilliseconds = DefaultPollIntervalMilliseconds) where T : class
+    public async Task<NpgmqMessage<T>?> PollAsync<T>(string queueName, int vt = DefaultVt, int pollTimeoutSeconds = DefaultPollTimeoutSeconds, int pollIntervalMilliseconds = DefaultPollIntervalMilliseconds, CancellationToken cancellationToken = default) where T : class
     {
         try
         {
-            var result = await PollBatchAsync<T>(queueName, vt, 1, pollTimeoutSeconds, pollIntervalMilliseconds).ConfigureAwait(false);
+            var result = await PollBatchAsync<T>(queueName, vt, 1, pollTimeoutSeconds, pollIntervalMilliseconds, cancellationToken).ConfigureAwait(false);
             return result.SingleOrDefault();
         }
         catch (Exception ex)
@@ -259,11 +259,11 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task<List<NpgmqMessage<T>>> PollBatchAsync<T>(string queueName, int vt = DefaultVt, int limit = DefaultReadBatchLimit, int pollTimeoutSeconds = DefaultPollTimeoutSeconds, int pollIntervalMilliseconds = DefaultPollIntervalMilliseconds) where T : class
+    public async Task<List<NpgmqMessage<T>>> PollBatchAsync<T>(string queueName, int vt = DefaultVt, int limit = DefaultReadBatchLimit, int pollTimeoutSeconds = DefaultPollTimeoutSeconds, int pollIntervalMilliseconds = DefaultPollIntervalMilliseconds, CancellationToken cancellationToken = default) where T : class
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT msg_id, read_ct, enqueued_at, vt, message FROM pgmq.read_with_poll(@queue_name, @vt, @limit, @poll_timeout_s, @poll_interval_ms);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT msg_id, read_ct, enqueued_at, vt, message FROM pgmq.read_with_poll(@queue_name, @vt, @limit, @poll_timeout_s, @poll_interval_ms);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
@@ -271,10 +271,10 @@ public class NpgmqClient : INpgmqClient
                 cmd.Parameters.AddWithValue("@limit", limit);
                 cmd.Parameters.AddWithValue("@poll_timeout_s", pollTimeoutSeconds);
                 cmd.Parameters.AddWithValue("@poll_interval_ms", pollIntervalMilliseconds);
-                var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+                var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
-                    return await ReadMessagesAsync<T>(reader).ConfigureAwait(false);
+                    return await ReadMessagesAsync<T>(reader, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -284,18 +284,18 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task<NpgmqMessage<T>?> PopAsync<T>(string queueName) where T : class
+    public async Task<NpgmqMessage<T>?> PopAsync<T>(string queueName, CancellationToken cancellationToken = default) where T : class
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT msg_id, read_ct, enqueued_at, vt, message FROM pgmq.pop(@queue_name);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT msg_id, read_ct, enqueued_at, vt, message FROM pgmq.pop(@queue_name);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
-                var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+                var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
-                    var result = await ReadMessagesAsync<T>(reader).ConfigureAwait(false);
+                    var result = await ReadMessagesAsync<T>(reader, cancellationToken).ConfigureAwait(false);
                     return result.SingleOrDefault();
                 }
             }
@@ -306,15 +306,15 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task<long> PurgeQueueAsync(string queueName)
+    public async Task<long> PurgeQueueAsync(string queueName, CancellationToken cancellationToken = default)
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.purge_queue(@queue_name);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.purge_queue(@queue_name);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
-                var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
+                var result = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
                 return Convert.ToInt64(result!);
             }
         }
@@ -324,15 +324,15 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task<bool> QueueExistsAsync(string queueName)
+    public async Task<bool> QueueExistsAsync(string queueName, CancellationToken cancellationToken = default)
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT 1 WHERE EXISTS (SELECT * FROM pgmq.list_queues() WHERE queue_name = @queue_name);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT 1 WHERE EXISTS (SELECT * FROM pgmq.list_queues() WHERE queue_name = @queue_name);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
-                var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
+                var result = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
                 return Convert.ToInt32(result ?? 0) == 1;
             }
         }
@@ -342,11 +342,11 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task<NpgmqMessage<T>?> ReadAsync<T>(string queueName, int vt = DefaultVt) where T : class
+    public async Task<NpgmqMessage<T>?> ReadAsync<T>(string queueName, int vt = DefaultVt, CancellationToken cancellationToken = default) where T : class
     {
         try
         {
-            var result = await ReadBatchAsync<T>(queueName, vt, 1).ConfigureAwait(false);
+            var result = await ReadBatchAsync<T>(queueName, vt, 1, cancellationToken).ConfigureAwait(false);
             return result.SingleOrDefault();
         }
         catch (Exception ex)
@@ -355,20 +355,20 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task<List<NpgmqMessage<T>>> ReadBatchAsync<T>(string queueName, int vt = DefaultVt, int limit = DefaultReadBatchLimit) where T : class
+    public async Task<List<NpgmqMessage<T>>> ReadBatchAsync<T>(string queueName, int vt = DefaultVt, int limit = DefaultReadBatchLimit, CancellationToken cancellationToken = default) where T : class
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT msg_id, read_ct, enqueued_at, vt, message FROM pgmq.read(@queue_name, @vt, @limit);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT msg_id, read_ct, enqueued_at, vt, message FROM pgmq.read(@queue_name, @vt, @limit);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@vt", vt);
                 cmd.Parameters.AddWithValue("@limit", limit);
-                var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+                var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
-                    return await ReadMessagesAsync<T>(reader).ConfigureAwait(false);
+                    return await ReadMessagesAsync<T>(reader, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -378,20 +378,20 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public Task<long> SendAsync<T>(string queueName, T message) where T : class =>
-        SendAsync(queueName, message, 0);
+    public Task<long> SendAsync<T>(string queueName, T message, CancellationToken cancellationToken = default) where T : class =>
+        SendAsync(queueName, message, 0, cancellationToken);
 
-    public async Task<long> SendAsync<T>(string queueName, T message, int delay) where T : class
+    public async Task<long> SendAsync<T>(string queueName, T message, int delay, CancellationToken cancellationToken = default) where T : class
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT * FROM pgmq.send(@queue_name, @msg, @delay);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT * FROM pgmq.send(@queue_name, @msg, @delay);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@msg", NpgsqlDbType.Jsonb, SerializeMessage(message));
                 cmd.Parameters.AddWithValue("@delay", delay);
-                var result = await cmd.ExecuteScalarAsync().ConfigureAwait(false);
+                var result = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
                 return Convert.ToInt64(result!);
             }
         }
@@ -402,27 +402,27 @@ public class NpgmqClient : INpgmqClient
     }
 
     [Obsolete("Use SendAsync instead.")]
-    public Task<long> SendDelayAsync<T>(string queueName, T message, int delay) where T : class =>
-        SendAsync(queueName, message, delay);
+    public Task<long> SendDelayAsync<T>(string queueName, T message, int delay, CancellationToken cancellationToken = default) where T : class =>
+        SendAsync(queueName, message, delay, cancellationToken);
 
-    public Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages) where T : class =>
-        SendBatchAsync(queueName, messages, 0);
+    public Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages, CancellationToken cancellationToken = default) where T : class =>
+        SendBatchAsync(queueName, messages, 0, cancellationToken);
 
-    public async Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages, int delay) where T : class
+    public async Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages, int delay, CancellationToken cancellationToken = default) where T : class
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT * FROM pgmq.send_batch(@queue_name, @msgs, @delay);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT * FROM pgmq.send_batch(@queue_name, @msgs, @delay);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@msgs", NpgsqlDbType.Array | NpgsqlDbType.Jsonb, messages.Select(SerializeMessage).ToArray());
                 cmd.Parameters.AddWithValue("@delay", delay);
-                var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+                var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
                     var result = new List<long>();
-                    while (await reader.ReadAsync().ConfigureAwait(false))
+                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
                     {
                         result.Add(reader.GetInt64(0));
                     }
@@ -436,17 +436,17 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task SetVtAsync(string queueName, long msgId, int vtOffset)
+    public async Task SetVtAsync(string queueName, long msgId, int vtOffset, CancellationToken cancellationToken = default)
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.set_vt(@queue_name, @msg_id, @vt_offset);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.set_vt(@queue_name, @msg_id, @vt_offset);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@msg_id", msgId);
                 cmd.Parameters.AddWithValue("@vt_offset", vtOffset);
-                await cmd.ExecuteNonQueryAsync().ConfigureAwait(false);
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
         }
         catch (Exception ex)
@@ -455,17 +455,17 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task<List<NpgmqMetricsResult>> GetMetricsAsync()
+    public async Task<List<NpgmqMetricsResult>> GetMetricsAsync(CancellationToken cancellationToken = default)
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT queue_name, queue_length, newest_msg_age_sec, oldest_msg_age_sec, total_messages, scrape_time FROM pgmq.metrics_all();").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT queue_name, queue_length, newest_msg_age_sec, oldest_msg_age_sec, total_messages, scrape_time FROM pgmq.metrics_all();", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
-                var reader = await cmd.ExecuteReaderAsync().ConfigureAwait(false);
+                var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
-                    return await ReadMetricsAsync(reader).ConfigureAwait(false);
+                    return await ReadMetricsAsync(reader, cancellationToken).ConfigureAwait(false);
                 }
             }
         }
@@ -475,18 +475,18 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task<NpgmqMetricsResult> GetMetricsAsync(string queueName)
+    public async Task<NpgmqMetricsResult> GetMetricsAsync(string queueName, CancellationToken cancellationToken = default)
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT queue_name, queue_length, newest_msg_age_sec, oldest_msg_age_sec, total_messages, scrape_time FROM pgmq.metrics(@queue_name);").ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT queue_name, queue_length, newest_msg_age_sec, oldest_msg_age_sec, total_messages, scrape_time FROM pgmq.metrics(@queue_name);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
-                var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow).ConfigureAwait(false);
+                var reader = await cmd.ExecuteReaderAsync(CommandBehavior.SingleRow, cancellationToken).ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
-                    var results = await ReadMetricsAsync(reader).ConfigureAwait(false);
+                    var results = await ReadMetricsAsync(reader, cancellationToken).ConfigureAwait(false);
                     return results.Count switch
                     {
                         1 => results.Single(),
@@ -502,17 +502,17 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    private static async Task<List<NpgmqMetricsResult>> ReadMetricsAsync(DbDataReader reader)
+    private static async Task<List<NpgmqMetricsResult>> ReadMetricsAsync(DbDataReader reader, CancellationToken cancellationToken = default)
     {
         var results = new List<NpgmqMetricsResult>();
-        while (await reader.ReadAsync().ConfigureAwait(false))
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             results.Add(new NpgmqMetricsResult
             {
                 QueueName = reader.GetString(0),
                 QueueLength = reader.GetInt64(1),
-                NewestMessageAge = await reader.IsDBNullAsync(2) ? null : reader.GetInt32(2),
-                OldestMessageAge = await reader.IsDBNullAsync(3) ? null : reader.GetInt32(3),
+                NewestMessageAge = await reader.IsDBNullAsync(2, cancellationToken).ConfigureAwait(false) ? null : reader.GetInt32(2),
+                OldestMessageAge = await reader.IsDBNullAsync(3, cancellationToken).ConfigureAwait(false) ? null : reader.GetInt32(3),
                 TotalMessages = reader.GetInt64(4),
                 ScrapeTime = reader.GetDateTime(5)
             });
@@ -520,10 +520,10 @@ public class NpgmqClient : INpgmqClient
         return results;
     }
 
-    private static async Task<List<NpgmqMessage<T>>> ReadMessagesAsync<T>(DbDataReader reader) where T : class
+    private static async Task<List<NpgmqMessage<T>>> ReadMessagesAsync<T>(DbDataReader reader, CancellationToken cancellationToken = default) where T : class
     {
         var result = new List<NpgmqMessage<T>>();
-        while (await reader.ReadAsync().ConfigureAwait(false))
+        while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
         {
             result.Add(new NpgmqMessage<T>
             {
@@ -531,7 +531,7 @@ public class NpgmqClient : INpgmqClient
                 ReadCt = reader.GetInt32(1),
                 EnqueuedAt = reader.GetDateTime(2),
                 Vt = reader.GetDateTime(3),
-                Message = await reader.IsDBNullAsync(4) ? null : DeserializeMessage<T>(reader.GetString(4))
+                Message = await reader.IsDBNullAsync(4, cancellationToken).ConfigureAwait(false) ? null : DeserializeMessage<T>(reader.GetString(4))
             });
         }
         return result;
