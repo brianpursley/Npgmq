@@ -3,12 +3,14 @@ using Microsoft.Extensions.Configuration;
 using Npgmq;
 using Npgsql;
 
+const string defaultConnectionString = "Host=localhost;Username=postgres;Database=npgmq_test;";
+
 var configuration = new ConfigurationBuilder()
     .AddEnvironmentVariables()
     .AddUserSecrets(Assembly.GetExecutingAssembly())
     .Build();
 
-var connectionString = configuration.GetConnectionString("ExampleDB")!;
+var connectionString = configuration.GetConnectionString("ExampleDB") ?? defaultConnectionString;
 
 // Test Npgmq with connection string
 {
