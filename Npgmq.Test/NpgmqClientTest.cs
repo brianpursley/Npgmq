@@ -8,6 +8,8 @@ namespace Npgmq.Test;
 
 public sealed class NpgmqClientTest : IDisposable
 {
+    private const string DefaultConnectionString = "Host=localhost;Username=postgres;Database=npgmq_test;";
+
     private static readonly string TestQueueName = $"test_{Guid.NewGuid():N}";
 
     private readonly string _connectionString;
@@ -28,7 +30,7 @@ public sealed class NpgmqClientTest : IDisposable
             .AddUserSecrets<NpgmqClientTest>()
             .Build();
 
-        _connectionString = configuration.GetConnectionString("Test")!;
+        _connectionString = configuration.GetConnectionString("Test") ?? DefaultConnectionString;
         _connection = new NpgsqlConnection(_connectionString);
         _sut = new NpgmqClient(_connection);
     }

@@ -4,7 +4,10 @@ set -e
 PGMQ_VERSION=$1 
 
 docker run -d --name npgmq_test_db -p 5432:5432 --rm quay.io/tembo/tembo-local
-sleep 4
+
+until docker exec npgmq_test_db /bin/sh -c "pg_isready"; do
+  sleep 1
+done
 
 docker exec npgmq_test_db /bin/sh -c "psql -c \"CREATE DATABASE npgmq_test;\""
 
