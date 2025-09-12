@@ -1,6 +1,6 @@
 # Npgmq
 
-A .NET client for [Postgres Message Queue](https://github.com/tembo-io/pgmq) (PGMQ).
+A .NET client for [Postgres Message Queue](https://github.com/pgmq/pgmq) (PGMQ).
 
 [![Build](https://github.com/brianpursley/Npgmq/actions/workflows/build.yml/badge.svg)](https://github.com/brianpursley/Npgmq/actions/workflows/build.yml)
 [![Nuget](https://img.shields.io/nuget/v/Npgmq)](https://www.nuget.org/packages/Npgmq/)

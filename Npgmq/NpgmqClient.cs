@@ -160,7 +160,7 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
-    public async Task DropQueueAsync(string queueName, CancellationToken cancellationToken = default)
+    public async Task<bool> DropQueueAsync(string queueName, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -168,7 +168,8 @@ public class NpgmqClient : INpgmqClient
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
-                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+                var result = await cmd.ExecuteScalarAsync(cancellationToken).ConfigureAwait(false);
+                return result is not null && Convert.ToBoolean(result);
             }
         }
         catch (Exception ex)
@@ -297,6 +298,28 @@ public class NpgmqClient : INpgmqClient
                 {
                     var result = await ReadMessagesAsync<T>(reader, cancellationToken).ConfigureAwait(false);
                     return result.SingleOrDefault();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to pop queue {queueName}.", ex);
+        }
+    }
+
+    public async Task<List<NpgmqMessage<T>>> PopAsync<T>(string queueName, int qty, CancellationToken cancellationToken = default) where T : class
+    {
+        try
+        {
+            var cmd = await _commandFactory.CreateAsync("SELECT msg_id, read_ct, enqueued_at, vt, message FROM pgmq.pop(@queue_name, @qty);", cancellationToken).ConfigureAwait(false);
+            await using (cmd.ConfigureAwait(false))
+            {
+                cmd.Parameters.AddWithValue("@queue_name", queueName);
+                cmd.Parameters.AddWithValue("@qty", qty);
+                var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                await using (reader.ConfigureAwait(false))
+                {
+                    return await ReadMessagesAsync<T>(reader, cancellationToken).ConfigureAwait(false);
                 }
             }
         }

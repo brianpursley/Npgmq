@@ -60,7 +60,8 @@ public interface INpgmqClient
     /// </summary>
     /// <param name="queueName">The queue name.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
-    Task DropQueueAsync(string queueName, CancellationToken cancellationToken = default);
+    /// <returns>True if the queue was dropped, false if the queue did not exist.</returns>
+    Task<bool> DropQueueAsync(string queueName, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Create pgmq extension, if it does not exist.
@@ -118,6 +119,19 @@ public interface INpgmqClient
     /// <typeparam name="T">The message type.</typeparam>
     /// <returns>The message read, or null if no message was read.</returns>
     Task<NpgmqMessage<T>?> PopAsync<T>(string queueName, CancellationToken cancellationToken = default) where T : class;
+
+    /// <summary>
+    /// Read up to the specified number of messages from a queue and immediately delete them.
+    /// </summary>
+    /// <remarks>
+    /// Requires pgmq 1.7.0 or later.
+    /// </remarks>
+    /// <param name="queueName">The queue name.</param>
+    /// <param name="qty">The number of messages to pop.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <typeparam name="T">The message type.</typeparam>
+    /// <returns>The messages read.</returns>
+    Task<List<NpgmqMessage<T>>> PopAsync<T>(string queueName, int qty, CancellationToken cancellationToken = default) where T : class;
 
     /// <summary>
     /// Purge a queue.
