@@ -3,7 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Npgmq;
 using Npgsql;
 
-const string defaultConnectionString = "Host=localhost;Username=postgres;Database=npgmq_test;";
+const string defaultConnectionString = "Host=localhost;Username=postgres;Password=postgres;Database=npgmq_test;";
 
 var configuration = new ConfigurationBuilder()
     .AddEnvironmentVariables()

@@ -8,7 +8,7 @@ namespace Npgmq.Test;
 
 public sealed class NpgmqClientTest : IDisposable
 {
-    private const string DefaultConnectionString = "Host=localhost;Username=postgres;Database=npgmq_test;";
+    private const string DefaultConnectionString = "Host=localhost;Username=postgres;Password=postgres;Database=npgmq_test;";
 
     private static readonly string TestQueueName = $"test_{Guid.NewGuid():N}";
 
@@ -228,10 +228,24 @@ public sealed class NpgmqClientTest : IDisposable
         Assert.Equal(1, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pgmq.meta WHERE queue_name = @queueName;", new { queueName = TestQueueName }));
 
         // Act
-        await _sut.DropQueueAsync(TestQueueName);
+        var result = await _sut.DropQueueAsync(TestQueueName);
 
         // Assert
+        Assert.True(result);
         Assert.Equal(0, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pgmq.meta WHERE queue_name = @queueName;", new { queueName = TestQueueName }));
+    }
+
+    [Fact]
+    public async Task DropQueueAsync_should_return_false_if_queue_does_not_exist()
+    {
+        // Arrange
+        await ResetTestQueueAsync();
+
+        // Act
+        var result = await _sut.DropQueueAsync("some_nonexistent_queue");
+
+        // Assert
+        Assert.False(result);
     }
 
     [Fact]
@@ -240,6 +254,7 @@ public sealed class NpgmqClientTest : IDisposable
         try
         {
             // Arrange
+            await ResetTestQueueAsync();
             await _connection.ExecuteAsync("DROP EXTENSION IF EXISTS pgmq CASCADE;");
             Assert.Equal(0, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pg_extension WHERE extname = 'pgmq';"));
 
@@ -282,6 +297,7 @@ public sealed class NpgmqClientTest : IDisposable
         try
         {
             // Arrange
+            await ResetTestQueueAsync();
             await _connection.ExecuteAsync("DROP EXTENSION IF EXISTS pgmq CASCADE;");
             Assert.Equal(0, await _connection.ExecuteScalarAsync<int>("SELECT count(*) FROM pg_extension WHERE extname = 'pgmq';"));
 
@@ -458,6 +474,43 @@ public sealed class NpgmqClientTest : IDisposable
             Baz = DateTimeOffset.Parse("2023-09-01T01:23:45-04:00")
         });
         Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
+        Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.a_{TestQueueName};"));
+    }
+
+    [SkippableTheory]
+    [InlineData(1, 1, 2)]
+    [InlineData(2, 2, 1)]
+    [InlineData(3, 3, 0)]
+    [InlineData(4, 3, 0)]
+    public async Task PopAsync_should_read_and_delete_multiple_messages(int qty, int expectedCount, int expectedRemaining)
+    {
+        Skip.IfNot(await IsMinPgmqVersion("1.7.0"), "requires pgmq 1.7.0 or later.");
+
+        // Arrange
+        await ResetTestQueueAsync();
+
+        // Act
+        var msgIds = new List<long>
+        {
+            await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 1 }),
+            await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 2 }),
+            await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 3 })
+        };
+
+        var results = await _sut.PopAsync<TestMessage>(TestQueueName, qty);
+
+        // Assert
+        Assert.Equal(expectedCount, results.Count);
+        for (var i = 0; i < expectedCount; i++)
+        {
+            var r = results[i];
+            Assert.Equal(msgIds[i], r.MsgId);
+            Assert.True(r.EnqueuedAt < DateTimeOffset.UtcNow);
+            Assert.Equal(TimeSpan.Zero, r.EnqueuedAt.Offset);
+            Assert.Equal(0, r.ReadCt);
+            r.Message.ShouldDeepEqual(new TestMessage { Foo = i + 1 });
+        }
+        Assert.Equal(expectedRemaining, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.q_{TestQueueName};"));
         Assert.Equal(0, await _connection.ExecuteScalarAsync<long>($"SELECT count(*) FROM pgmq.a_{TestQueueName};"));
     }
 
