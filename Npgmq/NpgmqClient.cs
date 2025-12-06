@@ -482,7 +482,7 @@ public class NpgmqClient : INpgmqClient
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.set_vt(@queue_name, @msg_ids, @vt_offset);", cancellationToken).ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT msg_id FROM pgmq.set_vt(@queue_name, @msg_ids, @vt_offset);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
