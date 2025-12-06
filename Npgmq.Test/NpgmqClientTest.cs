@@ -873,6 +873,84 @@ public sealed class NpgmqClientTest : IDisposable
     }
 
     [SkippableFact]
+    public async Task SetVtBatchAsync_should_change_vt_for_multiple_messages()
+    {
+        Skip.IfNot(await IsMinPgmqVersion("1.8.0"), "requires pgmq 1.8.0 or later.");
+
+        // Arrange
+        await ResetTestQueueAsync();
+        var msgIds = new List<long>
+        {
+            await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 1 }),
+            await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 2 }),
+            await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 3 })
+        };
+
+        // Read all messages to make them invisible
+        var messages1 = await _sut.ReadBatchAsync<TestMessage>(TestQueueName, limit: 3);
+        Assert.Equal(3, messages1.Count);
+
+        // Verify no messages are available
+        Assert.Null(await _sut.ReadAsync<TestMessage>(TestQueueName));
+
+        // Act
+        var results = await _sut.SetVtBatchAsync(TestQueueName, msgIds, -60);
+
+        // Assert
+        Assert.Equal(msgIds.OrderBy(x => x), results.OrderBy(x => x));
+
+        // Verify all messages are now available again
+        var messages2 = await _sut.ReadBatchAsync<TestMessage>(TestQueueName, limit: 3);
+        Assert.Equal(3, messages2.Count);
+        Assert.Equal(msgIds.OrderBy(x => x), messages2.Select(x => x.MsgId).OrderBy(x => x));
+    }
+
+    [SkippableTheory]
+    [InlineData(new long[] { }, 0)]
+    [InlineData(new long[] { 999999 }, 0)]
+    public async Task SetVtBatchAsync_should_return_empty_list_when_no_messages_updated(long[] msgIds, int expected)
+    {
+        Skip.IfNot(await IsMinPgmqVersion("1.8.0"), "requires pgmq 1.8.0 or later.");
+
+        // Arrange
+        await ResetTestQueueAsync();
+
+        // Act
+        var results = await _sut.SetVtBatchAsync(TestQueueName, msgIds, -60);
+
+        // Assert
+        Assert.Equal(expected, results.Count);
+    }
+
+    [SkippableTheory]
+    [InlineData(1, 1)]
+    [InlineData(2, 2)]
+    [InlineData(3, 3)]
+    public async Task SetVtBatchAsync_should_update_subset_of_messages(int count, int expected)
+    {
+        Skip.IfNot(await IsMinPgmqVersion("1.8.0"), "requires pgmq 1.8.0 or later.");
+
+        // Arrange
+        await ResetTestQueueAsync();
+        var msgIds = new List<long>
+        {
+            await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 1 }),
+            await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 2 }),
+            await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 3 })
+        };
+
+        // Read all messages to make them invisible
+        await _sut.ReadBatchAsync<TestMessage>(TestQueueName, limit: 3);
+
+        // Act
+        var results = await _sut.SetVtBatchAsync(TestQueueName, msgIds.Take(count), -60);
+
+        // Assert
+        Assert.Equal(expected, results.Count);
+        Assert.Equal(msgIds.Take(count).OrderBy(x => x), results.OrderBy(x => x));
+    }
+
+    [SkippableFact]
     public async Task GetMetricsAsync_should_return_metrics_for_a_single_queue()
     {
         Skip.IfNot(await IsMinPgmqVersion("0.33.1"), "PGMQ versions before 0.33.1 have a bug in the total messages calculation.");

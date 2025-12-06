@@ -478,6 +478,34 @@ public class NpgmqClient : INpgmqClient
         }
     }
 
+    public async Task<List<long>> SetVtBatchAsync(string queueName, IEnumerable<long> msgIds, int vtOffset, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.set_vt(@queue_name, @msg_ids, @vt_offset);", cancellationToken).ConfigureAwait(false);
+            await using (cmd.ConfigureAwait(false))
+            {
+                cmd.Parameters.AddWithValue("@queue_name", queueName);
+                cmd.Parameters.AddWithValue("@msg_ids", msgIds.ToArray());
+                cmd.Parameters.AddWithValue("@vt_offset", vtOffset);
+                var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
+                await using (reader.ConfigureAwait(false))
+                {
+                    var result = new List<long>();
+                    while (await reader.ReadAsync(cancellationToken).ConfigureAwait(false))
+                    {
+                        result.Add(reader.GetInt64(0));
+                    }
+                    return result;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            throw new NpgmqException($"Failed to set VT for messages in queue {queueName}.", ex);
+        }
+    }
+
     public async Task<List<NpgmqMetricsResult>> GetMetricsAsync(CancellationToken cancellationToken = default)
     {
         try
