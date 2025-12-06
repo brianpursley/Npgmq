@@ -873,6 +873,37 @@ public sealed class NpgmqClientTest : IDisposable
     }
 
     [SkippableFact]
+    public async Task SetVtBatchAsync_should_change_vt_for_multiple_messages()
+    {
+        // Arrange
+        Skip.If(!_pgmqSupportsPopQty, "This test requires pgmq 1.8.0 or later");
+        await ResetTestQueueAsync();
+        var msgIds = new List<long>
+        {
+            await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 1 }),
+            await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 2 }),
+            await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 3 })
+        };
+
+        // Read all messages to make them invisible
+        var messages1 = await _sut.ReadBatchAsync<TestMessage>(TestQueueName, limit: 3);
+        Assert.Equal(3, messages1.Count);
+        Assert.Null(await _sut.ReadAsync<TestMessage>(TestQueueName));
+
+        // Act
+        var updatedIds = await _sut.SetVtBatchAsync(TestQueueName, msgIds, -60);
+
+        // Assert
+        Assert.Equal(3, updatedIds.Count);
+        updatedIds.OrderBy(x => x).ShouldDeepEqual(msgIds.OrderBy(x => x));
+
+        // Verify messages are now visible again
+        var messages2 = await _sut.ReadBatchAsync<TestMessage>(TestQueueName, limit: 3);
+        Assert.Equal(3, messages2.Count);
+        messages2.Select(x => x.MsgId).OrderBy(x => x).ShouldDeepEqual(msgIds.OrderBy(x => x));
+    }
+
+    [SkippableFact]
     public async Task GetMetricsAsync_should_return_metrics_for_a_single_queue()
     {
         Skip.IfNot(await IsMinPgmqVersion("0.33.1"), "PGMQ versions before 0.33.1 have a bug in the total messages calculation.");
