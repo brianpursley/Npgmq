@@ -858,18 +858,59 @@ public sealed class NpgmqClientTest : IDisposable
         // Arrange
         await ResetTestQueueAsync();
         var msgId = await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 1 });
-        var message1 = await _sut.ReadAsync<TestMessage>(TestQueueName);
-        Assert.NotNull(message1);
-        Assert.Equal(msgId, message1.MsgId);
+        var message = await _sut.ReadAsync<TestMessage>(TestQueueName);
+        Assert.NotNull(message);
+        Assert.Equal(msgId, message.MsgId);
+        // Confirm there is nothing else to read
         Assert.Null(await _sut.ReadAsync<TestMessage>(TestQueueName));
 
         // Act
+        // Adjust the vt to be 60 seconds in the past, making the message available to read again.
         await _sut.SetVtAsync(TestQueueName, msgId, -60);
-        var message2 = await _sut.ReadAsync<TestMessage>(TestQueueName);
+        message = await _sut.ReadAsync<TestMessage>(TestQueueName);
 
         // Assert
+        Assert.NotNull(message);
+        Assert.Equal(msgId, message.MsgId);
+        Assert.Null(await _sut.ReadAsync<TestMessage>(TestQueueName));
+    }
+
+    [SkippableFact]
+    public async Task SetVtBatchAsync_should_change_vt_for_multiple_messages()
+    {
+        Skip.IfNot(await IsMinPgmqVersion("1.8.0"), "requires pgmq 1.8.0 or later.");
+
+        // Arrange
+        await ResetTestQueueAsync();
+        var msgId1 = await _sut.SendAsync(TestQueueName, new TestMessage
+        {
+            Foo = 1
+        });
+        var msgId2 = await _sut.SendAsync(TestQueueName, new TestMessage
+        {
+            Foo = 2
+        });
+        var message1 = await _sut.ReadAsync<TestMessage>(TestQueueName);
+        Assert.NotNull(message1);
+        Assert.Equal(msgId1, message1.MsgId);
+        var message2 = await _sut.ReadAsync<TestMessage>(TestQueueName);
         Assert.NotNull(message2);
-        Assert.Equal(msgId, message2.MsgId);
+        Assert.Equal(msgId2, message2.MsgId);
+        // Confirm there is nothing else to read
+        Assert.Null(await _sut.ReadAsync<TestMessage>(TestQueueName));
+
+        // Act
+        // Adjust the vt to be 60 seconds in the past, making the messages available to read again.
+        await _sut.SetVtBatchAsync(TestQueueName, new List<long> { msgId1, msgId2 }, -60);
+        message1 = await _sut.ReadAsync<TestMessage>(TestQueueName);
+        message2 = await _sut.ReadAsync<TestMessage>(TestQueueName);
+
+        // Assert
+        Assert.NotNull(message1);
+        Assert.Equal(msgId1, message1.MsgId);
+        Assert.NotNull(message2);
+        Assert.Equal(msgId2, message2.MsgId);
+        Assert.Null(await _sut.ReadAsync<TestMessage>(TestQueueName));
     }
 
     [SkippableFact]
