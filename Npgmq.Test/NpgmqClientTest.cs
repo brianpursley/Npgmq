@@ -873,6 +873,36 @@ public sealed class NpgmqClientTest : IDisposable
     }
 
     [SkippableFact]
+    public async Task SetVtBatchAsync_should_change_vt_for_multiple_messages()
+    {
+        Skip.IfNot(await IsMinPgmqVersion("1.8.0"), "requires pgmq 1.8.0 or later.");
+
+        // Arrange
+        await ResetTestQueueAsync();
+        var msgId1 = await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 1 });
+        var msgId2 = await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 2 });
+        var message1 = await _sut.ReadAsync<TestMessage>(TestQueueName);
+        Assert.NotNull(message1);
+        Assert.Equal(msgId1, message1.MsgId);
+        var message2 = await _sut.ReadAsync<TestMessage>(TestQueueName);
+        Assert.NotNull(message2);
+        Assert.Equal(msgId2, message2.MsgId);
+        Assert.Null(await _sut.ReadAsync<TestMessage>(TestQueueName));
+
+        // Act
+        await _sut.SetVtBatchAsync(TestQueueName, new List<long> { msgId1, msgId2 }, -60);
+        message1 = await _sut.ReadAsync<TestMessage>(TestQueueName);
+        message2 = await _sut.ReadAsync<TestMessage>(TestQueueName);
+
+        // Assert
+        Assert.NotNull(message1);
+        Assert.Equal(msgId1, message1.MsgId);
+        Assert.NotNull(message2);
+        Assert.Equal(msgId2, message2.MsgId);
+        Assert.Null(await _sut.ReadAsync<TestMessage>(TestQueueName));
+    }
+
+    [SkippableFact]
     public async Task GetMetricsAsync_should_return_metrics_for_a_single_queue()
     {
         Skip.IfNot(await IsMinPgmqVersion("0.33.1"), "PGMQ versions before 0.33.1 have a bug in the total messages calculation.");
