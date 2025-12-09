@@ -8,7 +8,9 @@ A .NET client for [Postgres Message Queue](https://github.com/pgmq/pgmq) (PGMQ).
 
 ## Compatibility
 
-* pgmq >= 0.31.0
+Npgmq is tested against pgmq version 1.5.1 and later.
+
+Some features may require a minimum version of pgmq. See the [INpgmqClient documentation](Npgmq/INpgmqClient.cs) for details.
 
 ## Installation
 To install the package via [Nuget](https://www.nuget.org/packages/Npgmq/), run the following command:
