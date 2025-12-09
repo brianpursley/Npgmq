@@ -14,11 +14,11 @@
         <Description>Npgmq provides a .NET client for Postgres Message Queue (PGMQ)</Description>
         <RepositoryUrl>https://github.com/brianpursley/Npgmq</RepositoryUrl>
         <PackageTags>PGMQ</PackageTags>
-        <TargetFrameworks>net6.0;net7.0;net8.0</TargetFrameworks>
+        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="Npgsql" Version="9.0.4" />
+      <PackageReference Include="Npgsql" Version="10.0.0" />
     </ItemGroup>
 
     <ItemGroup>
