@@ -502,7 +502,7 @@ public class NpgmqClient : INpgmqClient
         }
         catch (Exception ex)
         {
-            throw new NpgmqException($"Failed to set VT for messages from queue {queueName}.", ex);
+            throw new NpgmqException($"Failed to set VT for messages in queue {queueName}.", ex);
         }
     }
 
