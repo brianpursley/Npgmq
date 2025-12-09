@@ -858,18 +858,57 @@ public sealed class NpgmqClientTest : IDisposable
         // Arrange
         await ResetTestQueueAsync();
         var msgId = await _sut.SendAsync(TestQueueName, new TestMessage { Foo = 1 });
-        var message1 = await _sut.ReadAsync<TestMessage>(TestQueueName);
-        Assert.NotNull(message1);
-        Assert.Equal(msgId, message1.MsgId);
-        Assert.Null(await _sut.ReadAsync<TestMessage>(TestQueueName));
+        var originalMessages = await _sut.ReadBatchAsync<TestMessage>(TestQueueName);
+        Assert.Equal(msgId, originalMessages.Single().MsgId);
+        // Confirm there is nothing else to read
+        var visibleMessages = await _sut.ReadBatchAsync<TestMessage>(TestQueueName);
+        Assert.Empty(visibleMessages);
 
         // Act
+        // Adjust the vt to be 60 seconds in the past, making the message available to read again.
         await _sut.SetVtAsync(TestQueueName, msgId, -60);
-        var message2 = await _sut.ReadAsync<TestMessage>(TestQueueName);
+        visibleMessages = await _sut.ReadBatchAsync<TestMessage>(TestQueueName);
 
         // Assert
-        Assert.NotNull(message2);
-        Assert.Equal(msgId, message2.MsgId);
+        Assert.Equal(msgId, visibleMessages.Single().MsgId);
+        // After reading, there should be no more visible messages
+        Assert.Empty(await _sut.ReadBatchAsync<TestMessage>(TestQueueName));
+    }
+
+    [SkippableFact]
+    public async Task SetVtBatchAsync_should_change_vt_for_multiple_messages()
+    {
+        Skip.IfNot(await IsMinPgmqVersion("1.8.0"), "requires pgmq 1.8.0 or later.");
+
+        // Arrange
+        await ResetTestQueueAsync();
+        var msgId1 = await _sut.SendAsync(TestQueueName, new TestMessage
+        {
+            Foo = 1
+        });
+        var msgId2 = await _sut.SendAsync(TestQueueName, new TestMessage
+        {
+            Foo = 2
+        });
+        var originalMessages = await _sut.ReadBatchAsync<TestMessage>(TestQueueName);
+        Assert.Equal(2, originalMessages.Count);
+        // Confirm there is nothing else to read
+        var visibleMessages = await _sut.ReadBatchAsync<TestMessage>(TestQueueName);
+        Assert.Empty(visibleMessages);
+
+        // Act
+        // Adjust the vt to be 60 seconds in the past, making the messages available to read again.
+        var expectedMsgIds = new List<long> { msgId1, msgId2 };
+        var actualMsgIds = await _sut.SetVtBatchAsync(TestQueueName, expectedMsgIds, -60);
+        visibleMessages = await _sut.ReadBatchAsync<TestMessage>(TestQueueName);
+
+        // Assert
+        Assert.Equal(expectedMsgIds, actualMsgIds);
+        Assert.Equal(2, visibleMessages.Count);
+        Assert.Contains(visibleMessages, msg => msg.MsgId == msgId1);
+        Assert.Contains(visibleMessages, msg => msg.MsgId == msgId2);
+        // After reading, there should be no more visible messages
+        Assert.Empty(await _sut.ReadBatchAsync<TestMessage>(TestQueueName));
     }
 
     [SkippableFact]

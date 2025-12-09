@@ -234,6 +234,20 @@ public interface INpgmqClient
     Task SetVtAsync(string queueName, long msgId, int vtOffset, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Adjust the Vt of multiple existing messages.
+    /// </summary>
+    /// <remarks>
+    /// Requires pgmq 1.8.0 or later.
+    /// </remarks>
+    /// <param name="queueName">The queue name.</param>
+    /// <param name="msgIds">The message IDs.</param>
+    /// <param name="vtOffset">The number of seconds to be added to the current Vt.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <returns>List of IDs that were updated.</returns>
+    Task<List<long>> SetVtBatchAsync(string queueName, IEnumerable<long> msgIds, int vtOffset,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Get metrics for all queues.
     /// </summary>
     /// <param name="cancellationToken">The cancellation token.</param>
