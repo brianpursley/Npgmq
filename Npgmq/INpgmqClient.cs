@@ -6,6 +6,26 @@ namespace Npgmq;
 public interface INpgmqClient
 {
     /// <summary>
+    /// Default visibility timeout in seconds.
+    /// </summary>
+    public const int DefaultVt = 30;
+
+    /// <summary>
+    /// Default read batch limit.
+    /// </summary>
+    public const int DefaultReadBatchLimit = 10;
+
+    /// <summary>
+    /// Default poll timeout in seconds.
+    /// </summary>
+    public const int DefaultPollTimeoutSeconds = 5;
+
+    /// <summary>
+    /// Default poll interval in milliseconds.
+    /// </summary>
+    public const int DefaultPollIntervalMilliseconds = 250;
+
+    /// <summary>
     /// Archive a message.
     /// </summary>
     /// <param name="queueName">The queue name.</param>
@@ -89,14 +109,14 @@ public interface INpgmqClient
     /// <summary>
     /// Poll a queue for a message.
     /// </summary>
-    /// <param name="queue">The queue name.</param>
+    /// <param name="queueName">The queue name.</param>
     /// <param name="vt">The visibility time in seconds.</param>
     /// <param name="pollTimeoutSeconds">The amount of time to poll for, in seconds.</param>
     /// <param name="pollIntervalMilliseconds">The amount of time to wait between polls, in milliseconds.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <typeparam name="T">The message type.</typeparam>
     /// <returns>The message read, or null if no message was read.</returns>
-    Task<NpgmqMessage<T>?> PollAsync<T>(string queue, int vt = NpgmqClient.DefaultVt, int pollTimeoutSeconds = NpgmqClient.DefaultPollTimeoutSeconds, int pollIntervalMilliseconds = NpgmqClient.DefaultPollIntervalMilliseconds, CancellationToken cancellationToken = default) where T : class;
+    Task<NpgmqMessage<T>?> PollAsync<T>(string queueName, int vt = DefaultVt, int pollTimeoutSeconds = DefaultPollTimeoutSeconds, int pollIntervalMilliseconds = DefaultPollIntervalMilliseconds, CancellationToken cancellationToken = default) where T : class;
 
     /// <summary>
     /// Poll a queue for multiple messages.
@@ -109,7 +129,7 @@ public interface INpgmqClient
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <typeparam name="T">The message type.</typeparam>
     /// <returns>The messages read.</returns>
-    Task<List<NpgmqMessage<T>>> PollBatchAsync<T>(string queueName, int vt = NpgmqClient.DefaultVt, int limit = NpgmqClient.DefaultReadBatchLimit, int pollTimeoutSeconds = NpgmqClient.DefaultPollTimeoutSeconds, int pollIntervalMilliseconds = NpgmqClient.DefaultPollIntervalMilliseconds, CancellationToken cancellationToken = default) where T : class;
+    Task<List<NpgmqMessage<T>>> PollBatchAsync<T>(string queueName, int vt = DefaultVt, int limit = DefaultReadBatchLimit, int pollTimeoutSeconds = DefaultPollTimeoutSeconds, int pollIntervalMilliseconds = DefaultPollIntervalMilliseconds, CancellationToken cancellationToken = default) where T : class;
 
     /// <summary>
     /// Read a message from a queue and immediately delete it.
@@ -152,23 +172,23 @@ public interface INpgmqClient
     /// <summary>
     /// Read a message from a queue.
     /// </summary>
-    /// <param name="queue">The queue name.</param>
+    /// <param name="queueName">The queue name.</param>
     /// <param name="vt">The visibility time in seconds.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <typeparam name="T">The message type.</typeparam>
     /// <returns>The message read, or null if no message was read.</returns>
-    Task<NpgmqMessage<T>?> ReadAsync<T>(string queue, int vt = NpgmqClient.DefaultVt, CancellationToken cancellationToken = default) where T : class;
+    Task<NpgmqMessage<T>?> ReadAsync<T>(string queueName, int vt = DefaultVt, CancellationToken cancellationToken = default) where T : class;
 
     /// <summary>
     /// Read multiple messages from a queue.
     /// </summary>
-    /// <param name="queue">The queue name.</param>
+    /// <param name="queueName">The queue name.</param>
     /// <param name="vt">The visibility time in seconds.</param>
     /// <param name="limit">The maximum number of messages to read.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <typeparam name="T">The message type.</typeparam>
     /// <returns>The messages read.</returns>
-    Task<List<NpgmqMessage<T>>> ReadBatchAsync<T>(string queue, int vt = NpgmqClient.DefaultVt, int limit = NpgmqClient.DefaultReadBatchLimit, CancellationToken cancellationToken = default) where T : class;
+    Task<List<NpgmqMessage<T>>> ReadBatchAsync<T>(string queueName, int vt = DefaultVt, int limit = DefaultReadBatchLimit, CancellationToken cancellationToken = default) where T : class;
 
     /// <summary>
     /// Send a message to a queue.
@@ -181,7 +201,18 @@ public interface INpgmqClient
     Task<long> SendAsync<T>(string queueName, T message, CancellationToken cancellationToken = default) where T : class;
 
     /// <summary>
-    /// Send a message to a queue, visible after a specified number of seconds.
+    /// Send a message to a queue.
+    /// </summary>
+    /// <param name="queueName">The queue name.</param>
+    /// <param name="message">The message to send.</param>
+    /// <param name="headers">The message headers.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <typeparam name="T">The message type.</typeparam>
+    /// <returns>The ID of the sent message.</returns>
+    Task<long> SendAsync<T>(string queueName, T message, IReadOnlyDictionary<string, object> headers, CancellationToken cancellationToken = default) where T : class;
+
+    /// <summary>
+    /// Send a message to a queue.
     /// </summary>
     /// <param name="queueName">The queue name.</param>
     /// <param name="message">The message to send.</param>
@@ -192,16 +223,39 @@ public interface INpgmqClient
     Task<long> SendAsync<T>(string queueName, T message, int delay, CancellationToken cancellationToken = default) where T : class;
 
     /// <summary>
-    /// Send a message to a queue with a delayed vt.
+    /// Send a message to a queue.
     /// </summary>
     /// <param name="queueName">The queue name.</param>
     /// <param name="message">The message to send.</param>
+    /// <param name="delay">Time at which the message becomes visible.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <typeparam name="T">The message type.</typeparam>
+    /// <returns>The ID of the sent message.</returns>
+    Task<long> SendAsync<T>(string queueName, T message, DateTimeOffset delay, CancellationToken cancellationToken = default) where T : class;
+
+    /// <summary>
+    /// Send a message to a queue.
+    /// </summary>
+    /// <param name="queueName">The queue name.</param>
+    /// <param name="message">The message to send.</param>
+    /// <param name="headers">The message headers.</param>
     /// <param name="delay">Number of seconds until the message becomes visible.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <typeparam name="T">The message type.</typeparam>
     /// <returns>The ID of the sent message.</returns>
-    [Obsolete("Use SendAsync instead.")]
-    Task<long> SendDelayAsync<T>(string queueName, T message, int delay, CancellationToken cancellationToken = default) where T : class;
+    Task<long> SendAsync<T>(string queueName, T message, IReadOnlyDictionary<string, object> headers, int delay, CancellationToken cancellationToken = default) where T : class;
+
+    /// <summary>
+    /// Send a message to a queue.
+    /// </summary>
+    /// <param name="queueName">The queue name.</param>
+    /// <param name="message">The message to send.</param>
+    /// <param name="headers">The message headers.</param>
+    /// <param name="delay">Time at which the message becomes visible.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <typeparam name="T">The message type.</typeparam>
+    /// <returns>The ID of the sent message.</returns>
+    Task<long> SendAsync<T>(string queueName, T message, IReadOnlyDictionary<string, object> headers, DateTimeOffset delay, CancellationToken cancellationToken = default) where T : class;
 
     /// <summary>
     /// Send multiple messages to a queue.
@@ -214,15 +268,61 @@ public interface INpgmqClient
     Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages, CancellationToken cancellationToken = default) where T : class;
 
     /// <summary>
-    /// Send multiple messages to a queue, visible after a specified number of seconds.
+    /// Send multiple messages to a queue.
     /// </summary>
     /// <param name="queueName">The queue name.</param>
     /// <param name="messages">The messages to send.</param>
-    /// <param name="delay">Number of seconds until the message becomes visible.</param>
+    /// <param name="headers">The messages headers.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <typeparam name="T">The message type.</typeparam>
+    /// <returns>The IDs of the sent messages.</returns>
+    Task<List<long>> SendBatchAsync<T>(string queueName, IReadOnlyList<T> messages, IReadOnlyList<IReadOnlyDictionary<string, object>> headers, CancellationToken cancellationToken = default) where T : class;
+
+    /// <summary>
+    /// Send multiple messages to a queue.
+    /// </summary>
+    /// <param name="queueName">The queue name.</param>
+    /// <param name="messages">The messages to send.</param>
+    /// <param name="delay">Number of seconds until the messages become visible.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <typeparam name="T">The message type.</typeparam>
     /// <returns>The IDs of the sent messages.</returns>
     Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages, int delay, CancellationToken cancellationToken = default) where T : class;
+
+    /// <summary>
+    /// Send multiple messages to a queue.
+    /// </summary>
+    /// <param name="queueName">The queue name.</param>
+    /// <param name="messages">The messages to send.</param>
+    /// <param name="delay">Time at which the messages become visible.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <typeparam name="T">The message type.</typeparam>
+    /// <returns>The IDs of the sent messages.</returns>
+    Task<List<long>> SendBatchAsync<T>(string queueName, IEnumerable<T> messages, DateTimeOffset delay, CancellationToken cancellationToken = default) where T : class;
+
+    /// <summary>
+    /// Send multiple messages to a queue.
+    /// </summary>
+    /// <param name="queueName">The queue name.</param>
+    /// <param name="messages">The messages to send.</param>
+    /// <param name="headers">The messages headers.</param>
+    /// <param name="delay">Number of seconds until the messages become visible.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <typeparam name="T">The message type.</typeparam>
+    /// <returns>The IDs of the sent messages.</returns>
+    Task<List<long>> SendBatchAsync<T>(string queueName, IReadOnlyList<T> messages, IReadOnlyList<IReadOnlyDictionary<string, object>> headers, int delay, CancellationToken cancellationToken = default) where T : class;
+
+    /// <summary>
+    /// Send multiple messages to a queue.
+    /// </summary>
+    /// <param name="queueName">The queue name.</param>
+    /// <param name="messages">The messages to send.</param>
+    /// <param name="headers">The messages headers.</param>
+    /// <param name="delay">Time at which the messages become visible.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <typeparam name="T">The message type.</typeparam>
+    /// <returns>The IDs of the sent messages.</returns>
+    Task<List<long>> SendBatchAsync<T>(string queueName, IReadOnlyList<T> messages, IReadOnlyList<IReadOnlyDictionary<string, object>> headers, DateTimeOffset delay, CancellationToken cancellationToken = default) where T : class;
 
     /// <summary>
     /// Adjust the Vt of an existing message.

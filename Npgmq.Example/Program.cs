@@ -14,6 +14,7 @@ var connectionString = configuration.GetConnectionString("ExampleDB") ?? default
 
 // Test Npgmq with connection string
 {
+    Console.WriteLine("NpgmqClient using a connection string...");
     var npgmq = new NpgmqClient(connectionString);
 
     await npgmq.InitAsync();
@@ -32,10 +33,38 @@ var connectionString = configuration.GetConnectionString("ExampleDB") ?? default
         Console.WriteLine($"Read message with id {msg.MsgId} (EnqueuedAt = {msg.EnqueuedAt}, Vt = {msg.Vt}): Foo = {msg.Message?.Foo}, Bar = {msg.Message?.Bar}");
         await npgmq.ArchiveAsync("example_queue", msg.MsgId);
     }
+    Console.WriteLine();
+}
+
+// Test Npgmq with data source
+{
+    Console.WriteLine("NpgmqClient using a data source...");
+
+    await using var dataSource = NpgsqlDataSource.Create(connectionString);
+    var npgmq = new NpgmqClient(dataSource);
+
+    await npgmq.InitAsync();
+    await npgmq.CreateQueueAsync("example_queue");
+
+    var msgId = await npgmq.SendAsync("example_queue", new MyMessageType
+    {
+        Foo = "Connection string test",
+        Bar = 1
+    });
+    Console.WriteLine($"Sent message with id {msgId}");
+
+    var msg = await npgmq.ReadAsync<MyMessageType>("example_queue");
+    if (msg != null)
+    {
+        Console.WriteLine($"Read message with id {msg.MsgId} (EnqueuedAt = {msg.EnqueuedAt}, Vt = {msg.Vt}): Foo = {msg.Message?.Foo}, Bar = {msg.Message?.Bar}");
+        await npgmq.ArchiveAsync("example_queue", msg.MsgId);
+    }
+    Console.WriteLine();
 }
 
 // Test Npgmq with connection object and a transaction
 {
+    Console.WriteLine("NpgmqClient using a connection object with a transaction...");
     await using var connection = new NpgsqlConnection(connectionString);
     await connection.OpenAsync();
     var npgmq = new NpgmqClient(connection);
@@ -70,6 +99,7 @@ var connectionString = configuration.GetConnectionString("ExampleDB") ?? default
         Console.WriteLine($"Read message with id {msg.MsgId} (EnqueuedAt = {msg.EnqueuedAt}, Vt = {msg.Vt}): Foo = {msg.Message?.Foo}, Bar = {msg.Message?.Bar}");
         await npgmq.ArchiveAsync("example_queue", msg.MsgId);
     }
+    Console.WriteLine();
 }
 
 internal class MyMessageType

@@ -6,12 +6,6 @@ A .NET client for [Postgres Message Queue](https://github.com/pgmq/pgmq) (PGMQ).
 [![Nuget](https://img.shields.io/nuget/v/Npgmq)](https://www.nuget.org/packages/Npgmq/)
 ![License](https://img.shields.io/github/license/brianpursley/Npgmq)
 
-## Compatibility
-
-Npgmq is tested against pgmq version 1.5.1 and later.
-
-Some features may require a minimum version of pgmq. See the [INpgmqClient documentation](Npgmq/INpgmqClient.cs) for details.
-
 ## Installation
 To install the package via [Nuget](https://www.nuget.org/packages/Npgmq/), run the following command:
 
@@ -19,9 +13,21 @@ To install the package via [Nuget](https://www.nuget.org/packages/Npgmq/), run t
 dotnet add package Npgmq
 ```
 
-## Usage
+## Recommended Usage (TL;DR)
 
-Here is an example that uses Npgmq to create a queue and then send/read/archive a message:
+For most applications, use NpgsqlDataSource to create an NpgmqClient.
+
+```csharp
+await using var dataSource = NpgsqlDataSource.Create("<YOUR CONNECTION STRING HERE>");
+var npgmq = new NpgmqClient(dataSource);
+```
+
+This provides the best connection pooling, performance, and safety.
+
+You can also construct the client with a connection string or an existing NpgsqlConnection, but those options have tradeoffs. 
+See [Database Connection](#database-connection) below.
+
+## Basic Example
 
 ```csharp
 using Npgmq;
@@ -47,8 +53,6 @@ if (msg != null)
 }
 ```
 
-This example assumes you have defined a class called `MyMessageType` with the structure something like:
-
 ```csharp
 public class MyMessageType
 {
@@ -57,7 +61,9 @@ public class MyMessageType
 }
 ```
 
-You can send and read messages as JSON strings, like this:
+## JSON Messages (Custom Serialization)
+
+If you want full control over JSON serialization, you can send and receive messages as string:
 
 ```csharp   
 var msgId = await npgmq.SendAsync("my_queue", "{\"foo\":\"Test\",\"bar\":123}");
@@ -71,21 +77,64 @@ if (msg != null)
 }
 ```
 
-You can pass your own `NpgsqlConnection` to the `NpgmqClient` constructor, like this:
+Important:  
+* When sending messages as string, the value must contain valid JSON.  
+* NpgmqClient does not validate or escape string messages. Invalid JSON will cause the database call to fail.
 
-```csharp
-using var myConnection = new NpgsqlConnection("<YOUR CONNECTION STRING HERE>");
-var npgmq = new NpgmqClient(myConnection);
-```
 
 ## Database Connection
 
 Npgmq uses [Npgsql](https://www.npgsql.org/) internally to connect to the database.
 
+### Using NpgsqlDataSource (Recommended)
+
+```csharp
+await using var myDataSource = NpgsqlDataSource.Create("<YOUR CONNECTION STRING HERE>");
+var npgmq = new NpgmqClient(myDataSource);
+```
+
+This is the preferred approach and provides optimal pooling and configuration.
+
 ### Using a Connection String
 
-If you pass an [Npgsql connection string](https://www.npgsql.org/doc/connection-string-parameters.html) to the `NpgmqClient` constructor, it will use this connection string to create an [`NpgsqlConnection`](https://www.npgsql.org/doc/api/Npgsql.NpgsqlConnection.html) object internally, and the connection lifetime will be managed by NpgmqClient.
+```csharp
+var npgmq = new NpgmqClient("<YOUR CONNECTION STRING HERE>");
+```
 
-### Using a Connection Object
+Connections are created as needed using the provided connection string.
 
-If you pass an [`NpgsqlConnection`](https://www.npgsql.org/doc/api/Npgsql.NpgsqlConnection.html) object to the `NpgmqClient` constructor, it will use this connection instead of creating its own.
+### Using an Existing NpgsqlConnection
+
+```csharp
+await using var myConnection = new NpgsqlConnection("<YOUR CONNECTION STRING HERE>");
+var npgmq = new NpgmqClient(myConnection);
+```
+
+When using this constructor:
+* You are responsible for managing the connection lifecycle.
+* NpgmqClient will open the connection if necessary, but will not close or dispose it.
+* Concurrent usage is not supported. Ensure only one operation uses the connection at a time.
+
+## Concurrency
+
+NpgmqClient is safe for concurrent use when constructed with:
+* an NpgsqlDataSource
+* a connection string
+
+When constructed with an existing NpgsqlConnection, concurrent operations are not supported.
+
+## PGMQ Version Requirements
+
+Npgmq is tested with pgmq versions 1.5.1 and higher.
+
+Some features require minimum versions of the pgmq extension:
+* PopAsync(queue, qty): Requires pgmq 1.7.0+
+* SetVtBatchAsync: Requires pgmq 1.8.0+
+
+You can check the installed version:
+```csharp
+var version = await npgmq.GetPgmqVersionAsync();
+```
+
+## License
+MIT License. See [LICENSE](LICENSE) for details.
