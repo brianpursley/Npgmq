@@ -8,6 +8,8 @@ internal class NpgmqCommand(string commandText, NpgsqlConnection connection, boo
 {
     public override async ValueTask DisposeAsync()
     {
+        await base.DisposeAsync();
+
         if (disposeConnection && Connection != null)
         {
             if (Connection.State == ConnectionState.Open)
