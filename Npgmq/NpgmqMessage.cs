@@ -30,4 +30,9 @@ public class NpgmqMessage<T>
     /// The message value.
     /// </summary>
     public T? Message { get; set; }
+
+    /// <summary>
+    /// The message headers.
+    /// </summary>
+    public Dictionary<string, object>? Headers { get; set; }
 }

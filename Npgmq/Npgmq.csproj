@@ -18,6 +18,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <PackageReference Include="JOS.SystemTextJson.DictionaryStringObject.JsonConverter" Version="3.0.0" />
       <PackageReference Include="Npgsql" Version="10.0.1" />
     </ItemGroup>
 
