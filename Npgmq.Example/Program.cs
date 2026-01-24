@@ -38,7 +38,7 @@ var connectionString = configuration.GetConnectionString("ExampleDB") ?? default
 
 // Test Npgmq with data source
 {
-    Console.WriteLine("NpgmqClient using a cdata source...");
+    Console.WriteLine("NpgmqClient using a data source...");
 
     await using var dataSource = NpgsqlDataSource.Create(connectionString);
     var npgmq = new NpgmqClient(dataSource);

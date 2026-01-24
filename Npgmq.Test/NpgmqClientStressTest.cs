@@ -28,8 +28,6 @@ public class NpgmqClientStressTest(PostgresFixture postgresFixture) : IClassFixt
     public async Task Stress_SendAsync_PopAsync()
     {
         // Arrange
-        await _sut.CreateQueueAsync(_testQueueName);
-
         const int totalMessages = 20_000;
         const int producerCount = 50;
         const int consumerCount = 50;
