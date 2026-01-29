@@ -37,8 +37,8 @@ app.MapRazorPages()
 using (var serviceScope = app.Services.CreateScope())
 {
     var npgmqClient = serviceScope.ServiceProvider.GetRequiredService<INpgmqClient>();
-    npgmqClient.InitAsync().Wait();
-    npgmqClient.CreateQueueAsync("example_queue").Wait();
+    await npgmqClient.InitAsync();
+    await npgmqClient.CreateQueueAsync("example_queue");
 }
 
 app.Run();
