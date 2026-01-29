@@ -4,7 +4,7 @@ using Npgsql;
 namespace Npgmq.Test;
 
 [Collection("Npgmq")]
-public sealed class NpgmqServiceCollectionExtensionsTests(PostgresFixture postgresFixture) : IClassFixture<PostgresFixture>
+public sealed class NpgmqServiceCollectionExtensionsTest(PostgresFixture postgresFixture) : IClassFixture<PostgresFixture>
 {
     private static ServiceProvider CreateServiceProvider(IServiceCollection services)
         => services.BuildServiceProvider(new ServiceProviderOptions

@@ -41,4 +41,4 @@ using (var serviceScope = app.Services.CreateScope())
     await npgmqClient.CreateQueueAsync("example_queue");
 }
 
-app.Run();
+await app.RunAsync();
