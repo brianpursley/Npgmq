@@ -213,4 +213,43 @@ public sealed class NpgmqServiceCollectionExtensionsTest(PostgresFixture postgre
         Assert.Equal(1, services.Count(sd => sd.ServiceType == typeof(NpgmqClient) && Equals(sd.ServiceKey, key)));
         Assert.Equal(1, services.Count(sd => sd.ServiceType == typeof(INpgmqClient) && Equals(sd.ServiceKey, key)));
     }
+    
+    [Fact]
+    public async Task AddNpgmqClient_resolves_to_a_functional_client()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNpgsqlDataSource(postgresFixture.ConnectionString);
+        services.AddNpgmqClient();
+        var testQueueName = $"test_{Guid.NewGuid():N}";
+        
+        // Act
+        await using var provider = CreateServiceProvider(services);
+        var client = provider.GetRequiredService<INpgmqClient>();
+
+        // Assert
+        Assert.NotNull(client);
+        await client.CreateQueueAsync(testQueueName);
+        Assert.True(await client.QueueExistsAsync(testQueueName));
+        Assert.True(await client.DropQueueAsync(testQueueName));
+    }
+    
+    [Fact]
+    public async Task AddNpgmqClient_created_with_connection_string_resolves_to_a_functional_client()
+    {
+        // Arrange
+        var services = new ServiceCollection();
+        services.AddNpgmqClient(postgresFixture.ConnectionString);
+        var testQueueName = $"test_{Guid.NewGuid():N}";
+        
+        // Act
+        await using var provider = CreateServiceProvider(services);
+        var client = provider.GetRequiredService<INpgmqClient>();
+
+        // Assert
+        Assert.NotNull(client);
+        await client.CreateQueueAsync(testQueueName);
+        Assert.True(await client.QueueExistsAsync(testQueueName));
+        Assert.True(await client.DropQueueAsync(testQueueName));;
+    }
 }

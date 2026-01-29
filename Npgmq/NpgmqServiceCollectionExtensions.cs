@@ -67,7 +67,7 @@ public static class NpgmqServiceCollectionExtensions
     /// <param name="serviceKey">Key to register the service.</param>
     /// <returns>The service collection.</returns>
     /// <remarks>
-    /// This method registers an NpgsqlDataSource in the service collection using the provided connection string and service key.
+    /// This method registers an NpgsqlDataSource as a singleton in the service collection using the provided connection string and service key.
     /// </remarks>
     public static IServiceCollection AddNpgmqClient(
         this IServiceCollection serviceCollection,
