@@ -1,0 +1,36 @@
+﻿@page
+@model Npgmq.Example.Web.Pages.IndexModel
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    ViewData["Title"] = "Npgmq Web Example";
+}
+
+<form method="post" asp-page-handler="send">
+    @Html.AntiForgeryToken()
+    <div>
+        <label asp-for="MessageToSend.Foo">Foo</label>
+        <input type="text" asp-for="MessageToSend.Foo" />
+        <span asp-validation-for="MessageToSend.Foo"></span>
+    </div>
+    <div>
+        <label asp-for="MessageToSend.Bar">Bar</label>
+        <input type="number" asp-for="MessageToSend.Bar" />
+        <span asp-validation-for="MessageToSend.Bar"></span>
+    </div>
+    <button type="submit">Send</button>
+</form>
+@if (Model.SentMessageId.HasValue)
+{
+    <div>Sent Message @Model.SentMessageId</div>
+}
+
+<hr/>
+
+<form method="post" asp-page-handler="pop">
+    @Html.AntiForgeryToken()
+    <button type="submit">Pop</button>
+</form>
+@if (Model.PopResult != null) 
+{
+    <div>Popped Message @Model.PopResult.MsgId : @Model.PopResult.Message?.Foo - @Model.PopResult.Message?.Bar</div>
+}
