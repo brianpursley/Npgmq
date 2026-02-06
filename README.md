@@ -15,17 +15,26 @@ dotnet add package Npgmq
 
 ## Recommended Usage (TL;DR)
 
-For most applications, use NpgsqlDataSource to create an NpgmqClient.
+### Creating NpgmqClient
 
+When creating an NpgmqClient instance, the recommended approach is to use an NpgsqlDataSource. This provides the best connection pooling, performance, and safety.
 ```csharp
 await using var dataSource = NpgsqlDataSource.Create("<YOUR CONNECTION STRING HERE>");
 var npgmq = new NpgmqClient(dataSource);
 ```
 
-This provides the best connection pooling, performance, and safety.
-
-You can also construct the client with a connection string or an existing NpgsqlConnection, but those options have tradeoffs. 
+You can also construct the client with a connection string or an existing NpgsqlConnection, but those options have tradeoffs.
 See [Database Connection](#database-connection) below.
+
+### Using Dependency Injection (ASP.NET Core)
+
+For ASP.NET Core applications, register NpgmqClient in the DI container using one of the following methods:
+```csharp
+builder.Services.AddNpgmqClient("<YOUR CONNECTION STRING HERE>");
+```
+```csharp
+builder.Services.AddNpgmqClient(); // If you already have an NpgsqlDataSource registered
+```
 
 ## Basic Example
 
@@ -61,6 +70,12 @@ public class MyMessageType
 }
 ```
 
+### Additional Examples
+
+For more complete examples, see the following projects included in this repository:
+* [Npgmq.Example.Console](./Npgmq.Example.Console)
+* [Npgmq.Example.Web](./Npgmq.Example.Web)
+
 ## JSON Messages (Custom Serialization)
 
 If you want full control over JSON serialization, you can send and receive messages as string:
@@ -80,7 +95,6 @@ if (msg != null)
 Important:  
 * When sending messages as string, the value must contain valid JSON.  
 * NpgmqClient does not validate or escape string messages. Invalid JSON will cause the database call to fail.
-
 
 ## Database Connection
 
