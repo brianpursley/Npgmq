@@ -1309,6 +1309,35 @@ public sealed class NpgmqClientTest : IClassFixture<PostgresFixture>, IAsyncLife
     }
 
     [SkippableFact]
+    public async Task SetVtAsync_should_change_vt_for_a_message_using_timestamp()
+    {
+        Skip.IfNot(await IsMinPgmqVersion("1.10.0"), "requires pgmq 1.10.0 or later.");
+
+        // Arrange
+        await _sut.CreateQueueAsync(_testQueueName);
+        var msgId = await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 1 });
+        var originalMessages = await _sut.ReadBatchAsync<TestMessage>(_testQueueName);
+        Assert.Equal(msgId, originalMessages.Single().MsgId);
+        // Confirm there is nothing else to read
+        var visibleMessages = await _sut.ReadBatchAsync<TestMessage>(_testQueueName);
+        Assert.Empty(visibleMessages);
+
+        // Act
+        var vt = DateTimeOffset.UtcNow.AddSeconds(-60).TruncateToMicroseconds();
+        await _sut.SetVtAsync(_testQueueName, msgId, vt);
+        var storedVt = (await _connection.QuerySingleAsync<DateTime>($"SELECT vt FROM pgmq.q_{_testQueueName} WHERE msg_id = @msgId;", new { msgId }))
+            .ToDateTimeOffset()
+            .TruncateToMicroseconds();
+        visibleMessages = await _sut.ReadBatchAsync<TestMessage>(_testQueueName);
+
+        // Assert
+        Assert.Equal(vt, storedVt);
+        Assert.Equal(msgId, visibleMessages.Single().MsgId);
+        // After reading, there should be no more visible messages
+        Assert.Empty(await _sut.ReadBatchAsync<TestMessage>(_testQueueName));
+    }
+
+    [SkippableFact]
     public async Task SetVtBatchAsync_should_change_vt_for_multiple_messages()
     {
         Skip.IfNot(await IsMinPgmqVersion("1.8.0"), "requires pgmq 1.8.0 or later.");
@@ -1337,6 +1366,46 @@ public sealed class NpgmqClientTest : IClassFixture<PostgresFixture>, IAsyncLife
 
         // Assert
         Assert.Equal(expectedMsgIds, actualMsgIds);
+        Assert.Equal(2, visibleMessages.Count);
+        Assert.Contains(visibleMessages, msg => msg.MsgId == msgId1);
+        Assert.Contains(visibleMessages, msg => msg.MsgId == msgId2);
+        // After reading, there should be no more visible messages
+        Assert.Empty(await _sut.ReadBatchAsync<TestMessage>(_testQueueName));
+    }
+
+    [SkippableFact]
+    public async Task SetVtBatchAsync_should_change_vt_for_multiple_messages_using_timestamp()
+    {
+        Skip.IfNot(await IsMinPgmqVersion("1.10.0"), "requires pgmq 1.10.0 or later.");
+
+        // Arrange
+        await _sut.CreateQueueAsync(_testQueueName);
+        var msgId1 = await _sut.SendAsync(_testQueueName, new TestMessage
+        {
+            Foo = 1
+        });
+        var msgId2 = await _sut.SendAsync(_testQueueName, new TestMessage
+        {
+            Foo = 2
+        });
+        var originalMessages = await _sut.ReadBatchAsync<TestMessage>(_testQueueName);
+        Assert.Equal(2, originalMessages.Count);
+        // Confirm there is nothing else to read
+        var visibleMessages = await _sut.ReadBatchAsync<TestMessage>(_testQueueName);
+        Assert.Empty(visibleMessages);
+
+        // Act
+        var expectedMsgIds = new List<long> { msgId1, msgId2 };
+        var vt = DateTimeOffset.UtcNow.AddSeconds(-60).TruncateToMicroseconds();
+        var actualMsgIds = await _sut.SetVtBatchAsync(_testQueueName, expectedMsgIds, vt);
+        var storedVts = (await _connection.QueryAsync<DateTime>($"SELECT vt FROM pgmq.q_{_testQueueName} WHERE msg_id = ANY(@msgIds) ORDER BY msg_id;", new { msgIds = expectedMsgIds }))
+            .Select(x => x.ToDateTimeOffset().TruncateToMicroseconds())
+            .ToList();
+        visibleMessages = await _sut.ReadBatchAsync<TestMessage>(_testQueueName);
+
+        // Assert
+        Assert.Equal(expectedMsgIds, actualMsgIds);
+        Assert.All(storedVts, storedVt => Assert.Equal(vt, storedVt));
         Assert.Equal(2, visibleMessages.Count);
         Assert.Contains(visibleMessages, msg => msg.MsgId == msgId1);
         Assert.Contains(visibleMessages, msg => msg.MsgId == msgId2);

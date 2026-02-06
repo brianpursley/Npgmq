@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using Npgsql;
 
 namespace Npgmq.Test;
 
