@@ -6,17 +6,16 @@ namespace Npgmq;
 internal class NpgmqCommand(string commandText, NpgsqlConnection connection, bool disposeConnection)
     : NpgsqlCommand(commandText, connection)
 {
-    private bool _connectionDisposed;
+    private int _connectionDisposed;
 
     public override async ValueTask DisposeAsync()
     {
         // Dispose base command first to allow proper cleanup/unprepare
         await base.DisposeAsync().ConfigureAwait(false);
 
-        // Then dispose the owned connection if needed
-        if (disposeConnection && Connection != null && !_connectionDisposed)
+        // Then dispose the owned connection if needed (thread-safe check)
+        if (disposeConnection && Connection != null && Interlocked.CompareExchange(ref _connectionDisposed, 1, 0) == 0)
         {
-            _connectionDisposed = true;
             await Connection.DisposeAsync().ConfigureAwait(false);
         }
     }
@@ -26,10 +25,9 @@ internal class NpgmqCommand(string commandText, NpgsqlConnection connection, boo
         // Dispose base command first to allow proper cleanup/unprepare
         base.Dispose(disposing);
 
-        // Then dispose the owned connection if needed
-        if (disposing && disposeConnection && Connection != null && !_connectionDisposed)
+        // Then dispose the owned connection if needed (thread-safe check)
+        if (disposing && disposeConnection && Connection != null && Interlocked.CompareExchange(ref _connectionDisposed, 1, 0) == 0)
         {
-            _connectionDisposed = true;
             Connection.Dispose();
         }
     }
