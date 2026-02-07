@@ -341,7 +341,7 @@ public interface INpgmqClient
     /// </remarks>
     /// <param name="queueName">The queue name.</param>
     /// <param name="msgId">The message ID.</param>
-    /// <param name="vt">The new vt.</param>
+    /// <param name="vt">The new timestamp at which the message becomes visible.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     Task SetVtAsync(string queueName, long msgId, DateTimeOffset vt, CancellationToken cancellationToken = default);
 
@@ -367,7 +367,7 @@ public interface INpgmqClient
     /// </remarks>
     /// <param name="queueName">The queue name.</param>
     /// <param name="msgIds">The message IDs.</param>
-    /// <param name="vt">The new vt.</param>
+    /// <param name="vt">The new timestamp at which the messages become visible.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>List of IDs that were updated.</returns>
     Task<List<long>> SetVtBatchAsync(string queueName, IEnumerable<long> msgIds, DateTimeOffset vt,

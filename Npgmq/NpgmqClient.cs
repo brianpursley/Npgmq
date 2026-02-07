@@ -863,7 +863,7 @@ public class NpgmqClient : INpgmqClient
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@msg_id", msgId);
-                cmd.Parameters.AddWithValue("@vt", vt);
+                cmd.Parameters.AddWithValue("@vt", vt.ToUniversalTime());
                 await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
         }
@@ -918,7 +918,7 @@ public class NpgmqClient : INpgmqClient
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@msg_ids", NpgsqlDbType.Array | NpgsqlDbType.Bigint, msgIds.ToArray());
-                cmd.Parameters.AddWithValue("@vt", vt);
+                cmd.Parameters.AddWithValue("@vt", vt.ToUniversalTime());
                 var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
                 {
