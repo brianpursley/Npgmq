@@ -8,33 +8,43 @@ internal class NpgmqCommand(string commandText, NpgsqlConnection connection, boo
 {
     public override async ValueTask DisposeAsync()
     {
-        if (disposeConnection && Connection != null)
+        try
         {
-            if (Connection.State == ConnectionState.Open)
+            if (disposeConnection && Connection != null)
             {
-                await Connection.CloseAsync().ConfigureAwait(false);
+                if (Connection.State == ConnectionState.Open)
+                {
+                    await Connection.CloseAsync().ConfigureAwait(false);
+                }
+
+                await Connection.DisposeAsync().ConfigureAwait(false);
+                Connection = null;
             }
-
-            await Connection.DisposeAsync().ConfigureAwait(false);
-            Connection = null;
         }
-
-        await base.DisposeAsync().ConfigureAwait(false);
+        finally
+        {
+            await base.DisposeAsync().ConfigureAwait(false);
+        }
     }
 
     protected override void Dispose(bool disposing)
     {
-        if (disposing && disposeConnection && Connection != null)
+        try
         {
-            if (Connection.State == ConnectionState.Open)
+            if (disposing && disposeConnection && Connection != null)
             {
-                Connection.Close();
+                if (Connection.State == ConnectionState.Open)
+                {
+                    Connection.Close();
+                }
+
+                Connection.Dispose();
+                Connection = null;
             }
-
-            Connection.Dispose();
-            Connection = null;
         }
-
-        base.Dispose(disposing);
+        finally
+        {
+            base.Dispose(disposing);
+        }
     }
 }
