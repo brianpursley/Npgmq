@@ -6,6 +6,21 @@ namespace Npgmq;
 internal class NpgmqCommand(string commandText, NpgsqlConnection connection, bool disposeConnection)
     : NpgsqlCommand(commandText, connection)
 {
+    public override async ValueTask DisposeAsync()
+    {
+        if (disposeConnection && Connection != null)
+        {
+            if (Connection.State == ConnectionState.Open)
+            {
+                await Connection.CloseAsync().ConfigureAwait(false);
+            }
+
+            await Connection.DisposeAsync().ConfigureAwait(false);
+        }
+
+        await base.DisposeAsync().ConfigureAwait(false);
+    }
+
     protected override void Dispose(bool disposing)
     {
         if (disposing && disposeConnection && Connection != null)
@@ -16,7 +31,6 @@ internal class NpgmqCommand(string commandText, NpgsqlConnection connection, boo
             }
 
             Connection.Dispose();
-            Connection = null;
         }
 
         base.Dispose(disposing);
