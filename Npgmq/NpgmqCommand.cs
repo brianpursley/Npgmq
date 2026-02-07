@@ -12,11 +12,6 @@ internal class NpgmqCommand(string commandText, NpgsqlConnection connection, boo
         {
             if (disposeConnection && Connection != null)
             {
-                if (Connection.State == ConnectionState.Open)
-                {
-                    await Connection.CloseAsync().ConfigureAwait(false);
-                }
-
                 await Connection.DisposeAsync().ConfigureAwait(false);
                 Connection = null;
             }
@@ -33,11 +28,6 @@ internal class NpgmqCommand(string commandText, NpgsqlConnection connection, boo
         {
             if (disposing && disposeConnection && Connection != null)
             {
-                if (Connection.State == ConnectionState.Open)
-                {
-                    Connection.Close();
-                }
-
                 Connection.Dispose();
                 Connection = null;
             }
