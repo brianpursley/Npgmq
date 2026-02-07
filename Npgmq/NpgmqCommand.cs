@@ -16,6 +16,7 @@ internal class NpgmqCommand(string commandText, NpgsqlConnection connection, boo
             }
 
             await Connection.DisposeAsync().ConfigureAwait(false);
+            Connection = null;
         }
 
         await base.DisposeAsync().ConfigureAwait(false);
@@ -31,6 +32,7 @@ internal class NpgmqCommand(string commandText, NpgsqlConnection connection, boo
             }
 
             Connection.Dispose();
+            Connection = null;
         }
 
         base.Dispose(disposing);
