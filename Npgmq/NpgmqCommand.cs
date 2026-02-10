@@ -1,4 +1,3 @@
-using System.Data;
 using Npgsql;
 
 namespace Npgmq;
@@ -6,11 +5,14 @@ namespace Npgmq;
 internal class NpgmqCommand(string commandText, NpgsqlConnection connection, bool disposeConnection)
     : NpgsqlCommand(commandText, connection)
 {
+    // Track whether the connection has been disposed to avoid double-disposal.
+    private int _connectionHasBeenDisposed;
+
     public override async ValueTask DisposeAsync()
     {
         try
         {
-            if (disposeConnection && Connection != null)
+            if (disposeConnection && Connection != null && Interlocked.CompareExchange(ref _connectionHasBeenDisposed, 1, 0) == 0)
             {
                 await Connection.DisposeAsync().ConfigureAwait(false);
                 Connection = null;
@@ -26,7 +28,7 @@ internal class NpgmqCommand(string commandText, NpgsqlConnection connection, boo
     {
         try
         {
-            if (disposing && disposeConnection && Connection != null)
+            if (disposeConnection && Connection != null && Interlocked.CompareExchange(ref _connectionHasBeenDisposed, 1, 0) == 0)
             {
                 Connection.Dispose();
                 Connection = null;
