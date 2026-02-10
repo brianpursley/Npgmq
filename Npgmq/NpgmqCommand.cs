@@ -15,7 +15,6 @@ internal class NpgmqCommand(string commandText, NpgsqlConnection connection, boo
         if (disposeConnection && Connection != null && Interlocked.CompareExchange(ref _connectionHasBeenDisposed, 1, 0) == 0)
         {
             await Connection.DisposeAsync().ConfigureAwait(false);
-            Connection = null;
         }
     }
 
@@ -26,7 +25,6 @@ internal class NpgmqCommand(string commandText, NpgsqlConnection connection, boo
         if (disposing && disposeConnection && Connection != null && Interlocked.CompareExchange(ref _connectionHasBeenDisposed, 1, 0) == 0)
         {
             Connection.Dispose();
-            Connection = null;
         }
     }
 }
