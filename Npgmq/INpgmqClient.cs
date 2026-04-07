@@ -3,7 +3,7 @@ namespace Npgmq;
 /// <summary>
 /// PGMQ client.
 /// </summary>
-public interface INpgmqClient
+public partial interface INpgmqClient
 {
     /// <summary>
     /// Default visibility timeout in seconds.

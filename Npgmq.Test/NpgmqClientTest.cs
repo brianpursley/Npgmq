@@ -8,7 +8,7 @@ using Npgsql;
 namespace Npgmq.Test;
 
 [Collection("Npgmq")]
-public sealed class NpgmqClientTest : IClassFixture<PostgresFixture>, IAsyncLifetime
+public sealed partial class NpgmqClientTest : IClassFixture<PostgresFixture>, IAsyncLifetime
 {
     private readonly PostgresFixture _postgresFixture;
     private readonly NpgsqlConnection _connection;
@@ -53,6 +53,18 @@ public sealed class NpgmqClientTest : IClassFixture<PostgresFixture>, IAsyncLife
     {
         var version = await _connection.ExecuteScalarAsync<string>("select extversion from pg_extension where extname = 'pgmq';");
         return version is not null && new Version(version) >= new Version(minVersion);
+    }
+
+    [Fact]
+    public async Task NpgmqClient_should_throw_exception_when_provided_connection_is_null()
+    {
+        // Arrange
+        var sut = new NpgmqClient((NpgsqlConnection)null!);
+        var ex = await Assert.ThrowsAsync<NpgmqException>(async () => await sut.CreateQueueAsync(_testQueueName));
+        Assert.Equal($"Failed to create queue {_testQueueName}.", ex.Message);
+        Assert.NotNull(ex.InnerException);
+        Assert.IsType<NpgmqException>(ex.InnerException);
+        Assert.Equal("No valid connection configuration provided.", ex.InnerException.Message);
     }
 
     [Fact]

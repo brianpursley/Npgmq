@@ -1,3 +1,3 @@
 # Npgmq.Example.Console
 
-Example console project for Npgmq.
+Example console project that demonstrates NpgmqClient.
