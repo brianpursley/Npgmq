@@ -68,7 +68,7 @@ public sealed partial class NpgmqClientTest : IClassFixture<PostgresFixture>, IA
         var ex = Assert.Throws<ArgumentNullException>(() => new NpgmqClient((NpgsqlDataSource)null!));
         Assert.Equal("dataSource", ex.ParamName);
     }
-    
+
     [Fact]
     public void NpgmqClient_should_throw_exception_when_provided_connection_string_is_null()
     {
