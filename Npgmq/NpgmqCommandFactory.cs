@@ -12,17 +12,17 @@ internal class NpgmqCommandFactory
 
     public NpgmqCommandFactory(NpgsqlDataSource dataSource)
     {
-        _dataSource = dataSource;
+        _dataSource = dataSource ?? throw new ArgumentNullException(nameof(dataSource));
     }
 
     public NpgmqCommandFactory(NpgsqlConnection connection)
     {
-        _connection = connection;
+        _connection = connection ?? throw new ArgumentNullException(nameof(connection));
     }
 
     public NpgmqCommandFactory(string connectionString)
     {
-        _connectionString = connectionString;
+        _connectionString = connectionString ?? throw new ArgumentNullException(nameof(connectionString));
     }
 
     public async Task<NpgmqCommand> CreateAsync(string commandText, CancellationToken cancellationToken = default)

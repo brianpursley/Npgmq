@@ -56,15 +56,24 @@ public sealed partial class NpgmqClientTest : IClassFixture<PostgresFixture>, IA
     }
 
     [Fact]
-    public async Task NpgmqClient_should_throw_exception_when_provided_connection_is_null()
+    public void NpgmqClient_should_throw_exception_when_provided_connection_is_null()
     {
-        // Arrange
-        var sut = new NpgmqClient((NpgsqlConnection)null!);
-        var ex = await Assert.ThrowsAsync<NpgmqException>(async () => await sut.CreateQueueAsync(_testQueueName));
-        Assert.Equal($"Failed to create queue {_testQueueName}.", ex.Message);
-        Assert.NotNull(ex.InnerException);
-        Assert.IsType<NpgmqException>(ex.InnerException);
-        Assert.Equal("No valid connection configuration provided.", ex.InnerException.Message);
+        var ex = Assert.Throws<ArgumentNullException>(() => new NpgmqClient((NpgsqlConnection)null!));
+        Assert.Equal("connection", ex.ParamName);
+    }
+
+    [Fact]
+    public void NpgmqClient_should_throw_exception_when_provided_data_source_is_null()
+    {
+        var ex = Assert.Throws<ArgumentNullException>(() => new NpgmqClient((NpgsqlDataSource)null!));
+        Assert.Equal("dataSource", ex.ParamName);
+    }
+    
+    [Fact]
+    public void NpgmqClient_should_throw_exception_when_provided_connection_string_is_null()
+    {
+        var ex = Assert.Throws<ArgumentNullException>(() => new NpgmqClient((string)null!));
+        Assert.Equal("connectionString", ex.ParamName);
     }
 
     [Fact]

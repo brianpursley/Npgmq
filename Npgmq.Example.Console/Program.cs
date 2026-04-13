@@ -7,7 +7,7 @@ await EnsureNpgmqInitializedAsync();
 await DemoNpgmqClientWithConnectionStringAsync();
 await DemoNpgmqClientWithDataSourceAsync();
 await DemoNpgmqClientWithConnectionAndTransactionAsync();
-await DemoNpgmqClientTopicRouting();
+await DemoNpgmqClientTopicRoutingAsync();
 return;
 
 async Task EnsureNpgmqInitializedAsync()
@@ -88,7 +88,7 @@ async Task DemoNpgmqClientWithConnectionAndTransactionAsync()
     Console.WriteLine();
 }
 
-async Task DemoNpgmqClientTopicRouting()
+async Task DemoNpgmqClientTopicRoutingAsync()
 {
     Console.WriteLine("Demoing topic routing...");
     var npgmq = new NpgmqClient(GetConnectionString());

@@ -356,8 +356,7 @@ public partial interface INpgmqClient
     /// <param name="vtOffset">The number of seconds to be added to the current Vt.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>List of IDs that were updated.</returns>
-    Task<List<long>> SetVtBatchAsync(string queueName, IEnumerable<long> msgIds, int vtOffset,
-        CancellationToken cancellationToken = default);
+    Task<List<long>> SetVtBatchAsync(string queueName, IEnumerable<long> msgIds, int vtOffset, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Adjust the Vt of multiple existing messages.
@@ -370,8 +369,7 @@ public partial interface INpgmqClient
     /// <param name="vt">The new timestamp at which the messages become visible.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>List of IDs that were updated.</returns>
-    Task<List<long>> SetVtBatchAsync(string queueName, IEnumerable<long> msgIds, DateTimeOffset vt,
-        CancellationToken cancellationToken = default);
+    Task<List<long>> SetVtBatchAsync(string queueName, IEnumerable<long> msgIds, DateTimeOffset vt, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Get metrics for all queues.

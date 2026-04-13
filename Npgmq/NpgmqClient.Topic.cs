@@ -165,7 +165,7 @@ public partial class NpgmqClient
         }
     }
 
-    public async Task<List<NpgmqSendTopicResult>> SendBatchTopicAsync<T>(string routingKey, IEnumerable<T> messages, IReadOnlyList<IReadOnlyDictionary<string, object>> headers, CancellationToken cancellationToken = default) where T : class
+    public async Task<List<NpgmqSendTopicResult>> SendBatchTopicAsync<T>(string routingKey, IReadOnlyList<T> messages, IReadOnlyList<IReadOnlyDictionary<string, object>> headers, CancellationToken cancellationToken = default) where T : class
     {
         try
         {
@@ -234,7 +234,7 @@ public partial class NpgmqClient
         }
     }
 
-    public async Task<List<NpgmqSendTopicResult>> SendBatchTopicAsync<T>(string routingKey, IEnumerable<T> messages, IReadOnlyList<IReadOnlyDictionary<string, object>> headers, int delay, CancellationToken cancellationToken = default) where T : class
+    public async Task<List<NpgmqSendTopicResult>> SendBatchTopicAsync<T>(string routingKey, IReadOnlyList<T> messages, IReadOnlyList<IReadOnlyDictionary<string, object>> headers, int delay, CancellationToken cancellationToken = default) where T : class
     {
         try
         {
@@ -258,7 +258,7 @@ public partial class NpgmqClient
         }
     }
 
-    public async Task<List<NpgmqSendTopicResult>> SendBatchTopicAsync<T>(string routingKey, IEnumerable<T> messages, IReadOnlyList<IReadOnlyDictionary<string, object>> headers, DateTimeOffset delay, CancellationToken cancellationToken = default) where T : class
+    public async Task<List<NpgmqSendTopicResult>> SendBatchTopicAsync<T>(string routingKey, IReadOnlyList<T> messages, IReadOnlyList<IReadOnlyDictionary<string, object>> headers, DateTimeOffset delay, CancellationToken cancellationToken = default) where T : class
     {
         try
         {
