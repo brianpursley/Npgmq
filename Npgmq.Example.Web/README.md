@@ -1,3 +1,3 @@
 # Npgmq.Example.Web
 
-Example web project for Npgmq.
+Example web project that demonstrates NpgmqClient.

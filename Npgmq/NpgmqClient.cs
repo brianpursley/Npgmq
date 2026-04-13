@@ -8,7 +8,7 @@ using NpgsqlTypes;
 namespace Npgmq;
 
 /// <inheritdoc cref="INpgmqClient" />
-public class NpgmqClient : INpgmqClient
+public partial class NpgmqClient : INpgmqClient
 {
     // Specialized JsonSerializerOptions to handle Dictionary<string, object> deserialization
     private static readonly JsonSerializerOptions DeserializationOptions = new()
@@ -64,11 +64,7 @@ public class NpgmqClient : INpgmqClient
                 return result is not null && Convert.ToBoolean(result);
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to archive message {msgId} in queue {queueName}.", ex);
         }
@@ -95,11 +91,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to archive messages in queue {queueName}.", ex);
         }
@@ -116,11 +108,7 @@ public class NpgmqClient : INpgmqClient
                 await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to create queue {queueName}.", ex);
         }
@@ -137,11 +125,7 @@ public class NpgmqClient : INpgmqClient
                 await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to create unlogged queue {queueName}.", ex);
         }
@@ -160,11 +144,7 @@ public class NpgmqClient : INpgmqClient
                 return result is not null && Convert.ToBoolean(result);
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to delete message {msgId} from queue {queueName}.", ex);
         }
@@ -191,11 +171,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to delete messages from queue {queueName}.", ex);
         }
@@ -213,11 +189,7 @@ public class NpgmqClient : INpgmqClient
                 return result is not null && Convert.ToBoolean(result);
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to drop queue {queueName}.", ex);
         }
@@ -233,11 +205,7 @@ public class NpgmqClient : INpgmqClient
                 await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException("Failed to initialize PGMQ extension.", ex);
         }
@@ -259,11 +227,7 @@ public class NpgmqClient : INpgmqClient
                 };
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException("Failed to get PGMQ version.", ex);
         }
@@ -297,11 +261,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException("Failed to list queues.", ex);
         }
@@ -314,11 +274,7 @@ public class NpgmqClient : INpgmqClient
             var result = await PollBatchAsync<T>(queueName, vt, 1, pollTimeoutSeconds, pollIntervalMilliseconds, cancellationToken).ConfigureAwait(false);
             return result.SingleOrDefault();
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to poll queue {queueName}.", ex);
         }
@@ -343,11 +299,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to poll queue {queueName}.", ex);
         }
@@ -369,11 +321,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to pop queue {queueName}.", ex);
         }
@@ -395,11 +343,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to pop queue {queueName}.", ex);
         }
@@ -417,11 +361,7 @@ public class NpgmqClient : INpgmqClient
                 return Convert.ToInt64(result!);
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to purge queue {queueName}.", ex);
         }
@@ -439,11 +379,7 @@ public class NpgmqClient : INpgmqClient
                 return Convert.ToInt32(result ?? 0) == 1;
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to check if queue {queueName} exists.", ex);
         }
@@ -456,11 +392,7 @@ public class NpgmqClient : INpgmqClient
             var result = await ReadBatchAsync<T>(queueName, vt, 1, cancellationToken).ConfigureAwait(false);
             return result.SingleOrDefault();
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to read from queue {queueName}.", ex);
         }
@@ -483,11 +415,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to read from queue {queueName}.", ex);
         }
@@ -506,11 +434,7 @@ public class NpgmqClient : INpgmqClient
                 return Convert.ToInt64(result!);
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to send message to queue {queueName}.", ex);
         }
@@ -530,11 +454,7 @@ public class NpgmqClient : INpgmqClient
                 return Convert.ToInt64(result!);
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to send message to queue {queueName}.", ex);
         }
@@ -554,11 +474,7 @@ public class NpgmqClient : INpgmqClient
                 return Convert.ToInt64(result!);
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to send message to queue {queueName}.", ex);
         }
@@ -578,11 +494,7 @@ public class NpgmqClient : INpgmqClient
                 return Convert.ToInt64(result!);
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to send message to queue {queueName}.", ex);
         }
@@ -603,11 +515,7 @@ public class NpgmqClient : INpgmqClient
                 return Convert.ToInt64(result!);
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to send message to queue {queueName}.", ex);
         }
@@ -628,11 +536,7 @@ public class NpgmqClient : INpgmqClient
                 return Convert.ToInt64(result!);
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to send message to queue {queueName}.", ex);
         }
@@ -659,11 +563,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to send messages to queue {queueName}.", ex);
         }
@@ -691,11 +591,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to send messages to queue {queueName}.", ex);
         }
@@ -723,11 +619,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to send messages to queue {queueName}.", ex);
         }
@@ -755,11 +647,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to send messages to queue {queueName}.", ex);
         }
@@ -788,11 +676,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to send messages to queue {queueName}.", ex);
         }
@@ -821,11 +705,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to send messages to queue {queueName}.", ex);
         }
@@ -844,11 +724,7 @@ public class NpgmqClient : INpgmqClient
                 await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to set VT for message {msgId} in queue {queueName}.", ex);
         }
@@ -867,11 +743,7 @@ public class NpgmqClient : INpgmqClient
                 await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to set VT for message {msgId} in queue {queueName}.", ex);
         }
@@ -899,11 +771,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to set VT for messages in queue {queueName}.", ex);
         }
@@ -931,11 +799,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to set VT for messages in queue {queueName}.", ex);
         }
@@ -955,11 +819,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException("Failed to get metrics.", ex);
         }
@@ -986,11 +846,7 @@ public class NpgmqClient : INpgmqClient
                 }
             }
         }
-        catch (OperationCanceledException)
-        {
-            throw;
-        }
-        catch (Exception ex)
+        catch (Exception ex) when (ex is not OperationCanceledException)
         {
             throw new NpgmqException($"Failed to get metrics for queue {queueName}.", ex);
         }
@@ -1032,10 +888,10 @@ public class NpgmqClient : INpgmqClient
         return result;
     }
 
-    private static string SerializeMessage<T>(T message) where T : class =>
+    private static string SerializeMessage<T>(T message) =>
         typeof(T) == typeof(string) ? message as string ?? "" : JsonSerializer.Serialize(message);
 
-    private static T? DeserializeMessage<T>(string message) where T : class =>
+    private static T? DeserializeMessage<T>(string message) =>
         typeof(T) == typeof(string) ? (T?)(object?)message : JsonSerializer.Deserialize<T?>(message, DeserializationOptions);
 
     private static string SerializeHeaders(IReadOnlyDictionary<string, object> headers) =>

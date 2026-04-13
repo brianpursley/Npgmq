@@ -43,7 +43,7 @@ using Npgmq;
 
 var npgmq = new NpgmqClient("<YOUR CONNECTION STRING HERE>");
 
-await npgmq.InitAsync();
+await npgmq.InitAsync(); // Optional (ensures the pgmq extension has been created in postgres)
 
 await npgmq.CreateQueueAsync("my_queue");
 
@@ -144,6 +144,7 @@ Npgmq is tested with pgmq versions 1.5.1 and higher.
 Some features require minimum versions of the pgmq extension:
 * PopAsync(queue, qty): Requires pgmq 1.7.0+
 * SetVtBatchAsync: Requires pgmq 1.8.0+
+* Topic Support: Requires pgmq 1.11.0+
 
 You can check the installed version:
 ```csharp
