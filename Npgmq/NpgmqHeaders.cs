@@ -25,6 +25,6 @@ public static class NpgmqHeaders
     /// </summary>
     /// <param name="key">The header key.</param>
     /// <param name="value">The header value.</param>
-    /// <returns>>A dictionary representing the headers.</returns>
+    /// <returns>A dictionary representing the headers.</returns>
     public static Dictionary<string, object> From(string key, object value) => From((key, value));
 }
