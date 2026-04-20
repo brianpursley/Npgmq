@@ -44,48 +44,65 @@ jobs:
       - name: Build
         run: dotnet build --no-restore --configuration Release /p:Version=${{ env.VERSION }} /p:CopyrightYear=$(date +%Y)
 
-      - name: Test (latest pgmq version)
-        run: Npgmq.Test/scripts/run-tests.sh
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        pgmq-version:
+          - latest
+          - 1.11.1
+          - 1.11.0
+          - 1.10.0
+          - 1.9.0
+          - 1.8.1
+          - 1.8.0
+          - 1.7.0
+          - 1.6.1
+          - 1.6.0
+          - 1.5.1
+    name: Test pgmq ${{ matrix.pgmq-version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}  # This checks out the commit that triggered the workflow run
 
-      - name: Test (pgmq 1.11.0)
-        run: Npgmq.Test/scripts/run-tests.sh 1.11.0
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
 
-      - name: Test (pgmq 1.10.0)
-        run: Npgmq.Test/scripts/run-tests.sh 1.10.0
+      - name: Test
+        run: Npgmq.Test/scripts/run-tests.sh ${{ matrix.pgmq-version }}
 
-      - name: Test (pgmq 1.9.0)
-        run: Npgmq.Test/scripts/run-tests.sh 1.9.0
+  pack:
+    needs: [build, test]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }}  # This checks out the commit that triggered the workflow run
 
-      - name: Test (pgmq 1.8.1)
-        run: Npgmq.Test/scripts/run-tests.sh 1.8.1
-               
-      - name: Test (pgmq 1.8.0)
-        run: Npgmq.Test/scripts/run-tests.sh 1.8.0
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
 
-      - name: Test (pgmq 1.7.0)
-        run: Npgmq.Test/scripts/run-tests.sh 1.7.0
-
-      - name: Test (pgmq 1.6.1)
-        run: Npgmq.Test/scripts/run-tests.sh 1.6.1
-
-      - name: Test (pgmq 1.6.0)
-        run: Npgmq.Test/scripts/run-tests.sh 1.6.0
-
-      - name: Test (pgmq 1.5.1)
-        run: Npgmq.Test/scripts/run-tests.sh 1.5.1
+      - name: Set the version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
 
       - name: Pack
-        if: startsWith(github.ref, 'refs/tags/v')
-        run: dotnet pack Npgmq/Npgmq.csproj --no-build --configuration Release /p:PackageVersion=${{ env.VERSION }} /p:CopyrightYear=$(date +%Y) --output out
+        run: dotnet pack Npgmq/Npgmq.csproj --configuration Release /p:Version=${{ env.VERSION }} /p:PackageVersion=${{ env.VERSION }} /p:CopyrightYear=$(date +%Y) --output out
 
       - uses: actions/upload-artifact@v4
-        if: startsWith(github.ref, 'refs/tags/v')
         with:
           name: build-artifact
           path: out
 
   publish:
-    needs: build
+    needs: pack
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
