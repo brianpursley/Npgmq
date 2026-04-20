@@ -545,11 +545,7 @@ public sealed partial class NpgmqClientTest : IClassFixture<PostgresFixture>, IA
         await _sut.CreateQueueAsync(_testQueueName);
 
         // Act
-        var headers = new Dictionary<string, object>()
-        {
-            { "CorrelationId", "abc-123" },
-            { "Priority", 5 }
-        };
+        var headers = NpgmqHeaders.From(("CorrelationId", "abc-123"), ("Priority", 5));
         var msgId = await _sut.SendAsync(_testQueueName, new TestMessage
         {
             Foo = 123,
@@ -746,11 +742,7 @@ public sealed partial class NpgmqClientTest : IClassFixture<PostgresFixture>, IA
         await _sut.CreateQueueAsync(_testQueueName);
 
         // Act
-        var headers = new Dictionary<string, object>()
-        {
-            { "CorrelationId", "abc-123" },
-            { "Priority", 5 }
-        };
+        var headers = NpgmqHeaders.From(("CorrelationId", "abc-123"), ("Priority", 5));
         var msgId = await _sut.SendAsync(_testQueueName, new TestMessage
         {
             Foo = 123,
@@ -888,9 +880,9 @@ public sealed partial class NpgmqClientTest : IClassFixture<PostgresFixture>, IA
         // Act
         var msgIds = new List<long>
         {
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 1 }, new Dictionary<string, object> { { "header1", "aaa" } } ),
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 2 }, new Dictionary<string, object> { { "header1", "bbb" }, { "header2", 987 } }),
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 3 }, new Dictionary<string, object> { { "header1", "ccc" } } )
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 1 }, NpgmqHeaders.From("header1", "aaa")),
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 2 }, NpgmqHeaders.From(("header1", "bbb"), ("header2", 987))),
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 3 }, NpgmqHeaders.From("header1", "ccc"))
         };
 
         var messages = await _sut.ReadBatchAsync<TestMessage>(_testQueueName);
@@ -1038,11 +1030,7 @@ public sealed partial class NpgmqClientTest : IClassFixture<PostgresFixture>, IA
         await _sut.CreateQueueAsync(_testQueueName);
 
         // Act
-        var headers = new Dictionary<string, object>
-        {
-            { "some-header", 456 },
-            { "another-header", "test" }
-        };
+        var headers = NpgmqHeaders.From(("some-header", 456), ("another-header", "test"));
         var msgId = await _sut.SendAsync(_testQueueName, new TestMessage
         {
             Foo = 123,
@@ -1105,11 +1093,7 @@ public sealed partial class NpgmqClientTest : IClassFixture<PostgresFixture>, IA
         await _sut.CreateQueueAsync(_testQueueName);
 
         // Act
-        var headers = new Dictionary<string, object>
-        {
-            { "some-header", 456 },
-            { "another-header", "test" }
-        };
+        var headers = NpgmqHeaders.From(("some-header", 456), ("another-header", "test"));
         var msgId = await _sut.SendAsync(_testQueueName, new TestMessage
         {
             Foo = 123,
@@ -1130,11 +1114,7 @@ public sealed partial class NpgmqClientTest : IClassFixture<PostgresFixture>, IA
         await _sut.CreateQueueAsync(_testQueueName);
 
         // Act
-        var headers = new Dictionary<string, object>
-        {
-            { "some-header", 456 },
-            { "another-header", "test" }
-        };
+        var headers = NpgmqHeaders.From(("some-header", 456), ("another-header", "test"));
         var delay = DateTimeOffset.Now.AddSeconds(100);
         var msgId = await _sut.SendAsync(_testQueueName, new TestMessage
         {
@@ -1184,11 +1164,11 @@ public sealed partial class NpgmqClientTest : IClassFixture<PostgresFixture>, IA
             new() { Foo = 2 },
             new() { Foo = 3 }
         };
-        var headers = new List<Dictionary<string, object>>
+        var headers = new[]
         {
-            new() { { "header1", "aaa" } },
-            new() { { "header1", "bbb" }, { "header2", 987 } },
-            new() { { "header1", "ccc" } }
+            NpgmqHeaders.From("header1", "aaa"),
+            NpgmqHeaders.From(("header1", "bbb"), ("header2", 987)),
+            NpgmqHeaders.From("header1", "ccc")
         };
         var msgIds = await _sut.SendBatchAsync(_testQueueName, messages, headers);
 
@@ -1271,11 +1251,11 @@ public sealed partial class NpgmqClientTest : IClassFixture<PostgresFixture>, IA
             new() { Foo = 2 },
             new() { Foo = 3 }
         };
-        var headers = new List<Dictionary<string, object>>
+        var headers = new[]
         {
-            new() { { "header1", "aaa" } },
-            new() { { "header1", "bbb" }, { "header2", 987 } },
-            new() { { "header1", "ccc" } }
+            NpgmqHeaders.From("header1", "aaa"),
+            NpgmqHeaders.From(("header1", "bbb"), ("header2", 987)),
+            NpgmqHeaders.From("header1", "ccc")
         };
         var msgIds = await _sut.SendBatchAsync(_testQueueName, messages, headers, 100);
 
@@ -1298,11 +1278,11 @@ public sealed partial class NpgmqClientTest : IClassFixture<PostgresFixture>, IA
             new() { Foo = 2 },
             new() { Foo = 3 }
         };
-        var headers = new List<Dictionary<string, object>>
+        var headers = new[]
         {
-            new() { { "header1", "aaa" } },
-            new() { { "header1", "bbb" }, { "header2", 987 } },
-            new() { { "header1", "ccc" } }
+            NpgmqHeaders.From("header1", "aaa"),
+            NpgmqHeaders.From(("header1", "bbb"), ("header2", 987)),
+            NpgmqHeaders.From("header1", "ccc")
         };
         var delay = DateTimeOffset.Now.AddSeconds(100);
         var msgIds = await _sut.SendBatchAsync(_testQueueName, messages, headers, delay);

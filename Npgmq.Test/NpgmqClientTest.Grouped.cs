@@ -28,11 +28,11 @@ public partial class NpgmqClientTest
                 new TestMessage { Foo = 5 }
             ],
             [
-                NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group1"),
-                NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group2"),
-                NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group2"),
-                NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group1"),
-                NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group1")
+                NpgmqHeaders.From("x-pgmq-group", "group1"),
+                NpgmqHeaders.From("x-pgmq-group", "group2"),
+                NpgmqHeaders.From("x-pgmq-group", "group2"),
+                NpgmqHeaders.From("x-pgmq-group", "group1"),
+                NpgmqHeaders.From("x-pgmq-group", "group1")
             ]
         );
 
@@ -68,11 +68,11 @@ public partial class NpgmqClientTest
                 new TestMessage { Foo = 5 }
             ],
             [
-                NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group1"),
-                NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group1"),
-                NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group1"),
-                NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group2"),
-                NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group2")
+                NpgmqHeaders.From("x-pgmq-group", "group1"),
+                NpgmqHeaders.From("x-pgmq-group", "group1"),
+                NpgmqHeaders.From("x-pgmq-group", "group1"),
+                NpgmqHeaders.From("x-pgmq-group", "group2"),
+                NpgmqHeaders.From("x-pgmq-group", "group2")
             ]
         );
 
@@ -95,11 +95,11 @@ public partial class NpgmqClientTest
         // Act
         var msgIds = new List<long>
         {
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 1 }, NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group1")),
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 2 }, NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group2")),
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 3 }, NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group2")),
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 4 }, NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group1")),
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 5 }, NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group1"))
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 1 }, NpgmqHeaders.From("x-pgmq-group", "group1")),
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 2 }, NpgmqHeaders.From("x-pgmq-group", "group2")),
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 3 }, NpgmqHeaders.From("x-pgmq-group", "group2")),
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 4 }, NpgmqHeaders.From("x-pgmq-group", "group1")),
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 5 }, NpgmqHeaders.From("x-pgmq-group", "group1"))
         };
         var messages = await _sut.ReadGroupedAsync<TestMessage>(_testQueueName, limit: 3);
 
@@ -134,11 +134,11 @@ public partial class NpgmqClientTest
         // Act
         var msgIds = new List<long>
         {
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 1 }, NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group1")),
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 2 }, NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group1")),
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 3 }, NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group1")),
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 4 }, NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group2")),
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 5 }, NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group2"))
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 1 }, NpgmqHeaders.From("x-pgmq-group", "group1")),
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 2 }, NpgmqHeaders.From("x-pgmq-group", "group1")),
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 3 }, NpgmqHeaders.From("x-pgmq-group", "group1")),
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 4 }, NpgmqHeaders.From("x-pgmq-group", "group2")),
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 5 }, NpgmqHeaders.From("x-pgmq-group", "group2"))
         };
         var messages = await _sut.ReadGroupedRoundRobinAsync<TestMessage>(_testQueueName, limit: 3);
 
@@ -173,11 +173,11 @@ public partial class NpgmqClientTest
         // Act
         var msgIds = new List<long>
         {
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 1 }, NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group1")),
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 2 }, NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group1")),
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 3 }, NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group1")),
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 4 }, NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group2")),
-            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 5 }, NpgmqHeaders.From(NpgmqHeaders.XPgmqGroup, "group2"))
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 1 }, NpgmqHeaders.From("x-pgmq-group", "group1")),
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 2 }, NpgmqHeaders.From("x-pgmq-group", "group1")),
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 3 }, NpgmqHeaders.From("x-pgmq-group", "group1")),
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 4 }, NpgmqHeaders.From("x-pgmq-group", "group2")),
+            await _sut.SendAsync(_testQueueName, new TestMessage { Foo = 5 }, NpgmqHeaders.From("x-pgmq-group", "group2"))
         };
         var messages = await _sut.ReadGroupedHeadAsync<TestMessage>(_testQueueName);
 

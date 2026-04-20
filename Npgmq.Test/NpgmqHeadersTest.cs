@@ -16,6 +16,16 @@ public class NpgmqHeadersTest
     }
 
     [Fact]
+    public void From_should_create_empty_headers_dictionary_from_tuples()
+    {
+        // Act
+        var headers = NpgmqHeaders.From();
+
+        // Assert
+        Assert.Empty(headers);
+    }
+
+    [Fact]
     public void From_should_create_headers_dictionary_from_single_key_value()
     {
         // Act
