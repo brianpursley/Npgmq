@@ -449,19 +449,22 @@ public sealed partial class NpgmqClientTest : IClassFixture<PostgresFixture>, IA
         // Wait a little bit and then send some messages
         await Task.Delay(1000);
         var producer = new NpgmqClient(_postgresFixture.DataSource);
-        await producer.SendAsync(_testQueueName, new TestMessage { Foo = 1 });
-        await producer.SendAsync(_testQueueName, new TestMessage { Foo = 2 });
-        await producer.SendAsync(_testQueueName, new TestMessage { Foo = 3 });
-        await producer.SendAsync(_testQueueName, new TestMessage { Foo = 4 });
-        await producer.SendAsync(_testQueueName, new TestMessage { Foo = 5 });
+        var msgIds = await producer.SendBatchAsync(
+            _testQueueName,
+            [
+                new TestMessage { Foo = 1 },
+                new TestMessage { Foo = 2 },
+                new TestMessage { Foo = 3 },
+                new TestMessage { Foo = 4 },
+                new TestMessage { Foo = 5 }
+            ]
+        );
 
         // Get the messages received by the poll
         var messages = await pollTask;
 
         // Assert
-        Assert.True(messages.Count > 0);
-        Assert.True(messages.Count <= 3);
-        // TODO: Improve this test, keeping in mind that each call to PollBatchAsync is not guaranteed to read the limit
+        messages.Select(m => m.MsgId).ShouldDeepEqual(new[] { msgIds[0], msgIds[1], msgIds[2] });
     }
 
     [Fact]
@@ -476,11 +479,16 @@ public sealed partial class NpgmqClientTest : IClassFixture<PostgresFixture>, IA
         // Wait a little bit and then send some messages
         await Task.Delay(1000);
         var producer = new NpgmqClient(_postgresFixture.DataSource);
-        await producer.SendAsync(_testQueueName, new TestMessage { Foo = 1 });
-        await producer.SendAsync(_testQueueName, new TestMessage { Foo = 2 });
-        await producer.SendAsync(_testQueueName, new TestMessage { Foo = 3 });
-        await producer.SendAsync(_testQueueName, new TestMessage { Foo = 4 });
-        await producer.SendAsync(_testQueueName, new TestMessage { Foo = 5 });
+        var msgIds = await producer.SendBatchAsync(
+            _testQueueName,
+            [
+                new TestMessage { Foo = 1 },
+                new TestMessage { Foo = 2 },
+                new TestMessage { Foo = 3 },
+                new TestMessage { Foo = 4 },
+                new TestMessage { Foo = 5 }
+            ]
+        );
 
         // Get the messages received by the poll
         var batch1 = await pollTask;
@@ -493,7 +501,8 @@ public sealed partial class NpgmqClientTest : IClassFixture<PostgresFixture>, IA
         Assert.True(batch1.Count <= 3);
         Assert.True(batch2.Count > 0);
         Assert.True(batch2.Count <= 3);
-        Assert.Equal(batch1.Count + batch2.Count, batch1.Select(x => x.MsgId).Union(batch2.Select(x => x.MsgId)).Count());
+        var combined = batch1.Select(x => x.MsgId).Union(batch2.Select(x => x.MsgId)).ToList();
+        combined.ShouldDeepEqual(new[] { msgIds[0], msgIds[1], msgIds[2], msgIds[3], msgIds[4] });
     }
 
     [Fact]

@@ -28,8 +28,8 @@ public class NpgmqClientStressTest(PostgresFixture postgresFixture) : IClassFixt
     {
         // Arrange
         const int totalMessages = 20_000;
-        const int producerCount = 50;
-        const int consumerCount = 50;
+        const int producerCount = 40; // Keep total producer + consumer count below postgres max connections
+        const int consumerCount = 40;
 
         var seen = new ConcurrentDictionary<int, int>(); // id -> count
         var produced = Enumerable.Range(1, totalMessages).ToArray();
@@ -76,8 +76,8 @@ public class NpgmqClientStressTest(PostgresFixture postgresFixture) : IClassFixt
     {
         // Arrange
         const int totalMessages = 20_000;
-        const int producerCount = 50;
-        const int consumerCount = 50;
+        const int producerCount = 40; // Keep total producer + consumer count below postgres max connections
+        const int consumerCount = 40;
 
         var seen = new ConcurrentDictionary<int, int>(); // id -> count
         var produced = Enumerable.Range(1, totalMessages).ToArray();
