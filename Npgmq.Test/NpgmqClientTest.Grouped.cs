@@ -200,4 +200,28 @@ public partial class NpgmqClientTest
         // Assert
         Assert.Empty(messages);
     }
+
+    [SkippableFact]
+    public async Task CreateFifoIndexAsync_should_create_fifo_index()
+    {
+        Skip.IfNot(await IsMinPgmqVersion("1.9.0"), "requires pgmq 1.9.0 or later.");
+
+        // Arrange
+        await _sut.CreateQueueAsync(_testQueueName);
+
+        // Act
+        await _sut.CreateFifoIndexAsync(_testQueueName);
+    }
+
+    [SkippableFact]
+    public async Task CreateFifoIndexesAsync_should_create_fifo_indexes()
+    {
+        Skip.IfNot(await IsMinPgmqVersion("1.9.0"), "requires pgmq 1.9.0 or later.");
+
+        // Arrange
+        await _sut.CreateQueueAsync(_testQueueName);
+
+        // Act
+        await _sut.CreateFifoIndexesAsync();
+    }
 }

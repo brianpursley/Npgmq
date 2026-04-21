@@ -121,4 +121,36 @@ public partial class NpgmqClient
         }
     }
 
+    public async Task CreateFifoIndexAsync(string queueName, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.create_fifo_index(@queue_name);", cancellationToken).ConfigureAwait(false);
+            await using (cmd.ConfigureAwait(false))
+            {
+                cmd.Parameters.AddWithValue("@queue_name", queueName);
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new NpgmqException($"Failed to create FIFO index for queue {queueName}.", ex);
+        }
+    }
+
+    public async Task CreateFifoIndexesAsync(CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var cmd = await _commandFactory.CreateAsync("SELECT pgmq.create_fifo_indexes_all();", cancellationToken).ConfigureAwait(false);
+            await using (cmd.ConfigureAwait(false))
+            {
+                await cmd.ExecuteNonQueryAsync(cancellationToken).ConfigureAwait(false);
+            }
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            throw new NpgmqException("Failed to create all FIFO indexes.", ex);
+        }
+    }
 }
