@@ -142,9 +142,14 @@ When constructed with an existing NpgsqlConnection, concurrent operations are no
 Npgmq is tested with pgmq versions 1.5.1 and higher.
 
 Some features require minimum versions of the pgmq extension:
-* PopAsync(queue, qty): Requires pgmq 1.7.0+
-* SetVtBatchAsync: Requires pgmq 1.8.0+
-* Topic Support: Requires pgmq 1.11.0+
+
+| Feature | Minimum pgmq version |
+| --- | --- |
+| `PopAsync(queue, qty)` | 1.7.0 |
+| `SetVtBatchAsync` | 1.8.0 |
+| FIFO grouped reads | 1.9.0 |
+| Topic support | 1.11.0 |
+| `ReadGroupedHeadAsync` | 1.11.1 |
 
 You can check the installed version:
 ```csharp

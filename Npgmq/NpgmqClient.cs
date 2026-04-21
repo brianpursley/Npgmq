@@ -284,13 +284,13 @@ public partial class NpgmqClient : INpgmqClient
     {
         try
         {
-            var cmd = await _commandFactory.CreateAsync("SELECT msg_id, read_ct, enqueued_at, vt, message, headers FROM pgmq.read_with_poll(@queue_name, @vt, @qty, @poll_timeout_s, @poll_interval_ms);", cancellationToken).ConfigureAwait(false);
+            var cmd = await _commandFactory.CreateAsync("SELECT msg_id, read_ct, enqueued_at, vt, message, headers FROM pgmq.read_with_poll(@queue_name, @vt, @qty, @max_poll_seconds, @poll_interval_ms);", cancellationToken).ConfigureAwait(false);
             await using (cmd.ConfigureAwait(false))
             {
                 cmd.Parameters.AddWithValue("@queue_name", queueName);
                 cmd.Parameters.AddWithValue("@vt", vt);
                 cmd.Parameters.AddWithValue("@qty", limit);
-                cmd.Parameters.AddWithValue("@poll_timeout_s", pollTimeoutSeconds);
+                cmd.Parameters.AddWithValue("@max_poll_seconds", pollTimeoutSeconds);
                 cmd.Parameters.AddWithValue("@poll_interval_ms", pollIntervalMilliseconds);
                 var reader = await cmd.ExecuteReaderAsync(cancellationToken).ConfigureAwait(false);
                 await using (reader.ConfigureAwait(false))
