@@ -1,11 +1,11 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <RootNamespace>Npgmq</RootNamespace>
         <LangVersion>default</LangVersion>
-        <PackageId>Npgmq</PackageId>
+        <PackageId>Npgmq.Hosting</PackageId>
         <PackageProjectUrl>https://github.com/brianpursley/Npgmq</PackageProjectUrl>
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
@@ -19,19 +19,21 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="JOS.SystemTextJson.DictionaryStringObject.JsonConverter" />
-      <PackageReference Include="Npgsql" />
-      <PackageReference Include="Npgsql.DependencyInjection" />
-    </ItemGroup>
-
-    <ItemGroup>
         <None Include="..\README.md" Pack="true" PackagePath=""/>
     </ItemGroup>
 
     <ItemGroup>
-      <Content Include="..\README.md">
-        <Link>README.md</Link>
-      </Content>
+        <Content Include="..\README.md">
+            <Link>README.md</Link>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Npgmq\Npgmq.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.Hosting" />
     </ItemGroup>
 
 </Project>
