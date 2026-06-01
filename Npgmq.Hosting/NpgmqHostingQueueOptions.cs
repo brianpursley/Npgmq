@@ -5,7 +5,7 @@ public sealed class NpgmqHostingQueueOptions(string queueName)
     public string QueueName { get; } = queueName;
 
     internal readonly List<INpgmqHostingQueueHandlerOptions> Handlers = [];
-    
+
     public int VisibilityTimeout { get; private set; } = INpgmqClient.DefaultVt;
 
     public int BatchSize { get; private set; } = INpgmqClient.DefaultReadBatchLimit;

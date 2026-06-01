@@ -10,19 +10,19 @@ internal sealed class NpgmqBackgroundService(
     IServiceScopeFactory serviceScopeFactory,
     IOptions<NpgmqHostingOptions> optionsWrapper,
     ILogger<NpgmqBackgroundService> logger
-) : BackgroundService, 
+) : BackgroundService,
     IHostedLifecycleService
 {
     private readonly NpgmqHostingOptions _options = optionsWrapper.Value;
-    
+
     public async Task StartingAsync(CancellationToken cancellationToken)
     {
         await client.InitAsync(cancellationToken);
-        
+
         var version = await client.GetPgmqVersionAsync(cancellationToken);
-        
+
         logger.LogInformation("Npgmq version: {version}", version);
-        
+
         await RegisterQueuesAsync(cancellationToken);
     }
 
@@ -31,7 +31,7 @@ internal sealed class NpgmqBackgroundService(
         var tasks = _options.QueueOptions
             .SelectMany(queue =>
                 queue.Handlers.Select(handler => PollQueueForMessageAsync(queue, handler, stoppingToken)));
-        
+
         await Task.WhenAll(tasks);
     }
 
@@ -52,22 +52,22 @@ internal sealed class NpgmqBackgroundService(
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 logger.LogError(ex, "Failed to process Npgmq queue {queue}", queue.QueueName);
-                
+
                 await Task.Delay(queue.ErrorDelay, cancellationToken);
             }
         }
     }
-    
+
     async ValueTask RegisterQueuesAsync(CancellationToken cancellationToken)
     {
         foreach (var queue in _options.QueueOptions)
         {
             await client.CreateQueueAsync(queue.QueueName, cancellationToken);
-            
+
             logger.LogInformation("Registered Npgmq queue: {queue}", queue.QueueName);
         }
     }
-    
+
     public Task StartedAsync(CancellationToken cancellationToken) => Task.CompletedTask;
 
     public Task StoppingAsync(CancellationToken cancellationToken) => Task.CompletedTask;

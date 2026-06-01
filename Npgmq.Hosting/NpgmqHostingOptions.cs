@@ -3,9 +3,9 @@ namespace Npgmq;
 public sealed class NpgmqHostingOptions
 {
     private readonly Dictionary<string, NpgmqHostingQueueOptions> _queueOptions = [];
-    
+
     internal IEnumerable<NpgmqHostingQueueOptions> QueueOptions => _queueOptions.Values;
-    
+
     public NpgmqHostingOptions UseQueue(string queueName, Action<NpgmqHostingQueueOptions> configure)
     {
         var options = GetQueueOptions(queueName);
@@ -23,7 +23,7 @@ public sealed class NpgmqHostingOptions
         }
 
         value = new NpgmqHostingQueueOptions(queueName);
-        
+
         _queueOptions.Add(queueName, value);
 
         return value;

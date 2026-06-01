@@ -10,9 +10,9 @@ public static class ServiceCollectionExtensions
     )
     {
         services.AddHostedService<NpgmqBackgroundService>();
-        
+
         services.Configure(configure);
-        
+
         return services;
     }
 }

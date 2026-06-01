@@ -9,10 +9,10 @@ internal sealed class EventPublisherBackgroundTask(NpgmqClient client) : Backgro
         while (!stoppingToken.IsCancellationRequested)
         {
             await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
-            
+
             await client.SendAsync(
-                "test_queue", 
-                new SampleEvent(), 
+                "test_queue",
+                new SampleEvent(),
                 stoppingToken);
         }
     }

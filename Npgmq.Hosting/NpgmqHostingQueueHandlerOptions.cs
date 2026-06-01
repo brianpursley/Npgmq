@@ -33,11 +33,11 @@ internal sealed class NpgmqHostingQueueHandlerOptions<TMessage, THandler>(NpgmqH
         CancellationToken cancellationToken)
     {
         await using var scope = serviceScopeFactory.CreateAsyncScope();
-        
+
         var handler = ActivatorUtilities.GetServiceOrCreateInstance<THandler>(scope.ServiceProvider);
 
         await handler.ConsumeAsync(message, cancellationToken);
-        
+
         await client.ArchiveAsync(queue.QueueName, message.MsgId, cancellationToken);
     }
 }
