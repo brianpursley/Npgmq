@@ -12,6 +12,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.editorconfig = .editorconfig
 		.gitignore = .gitignore
 		CONTRIBUTING.md = CONTRIBUTING.md
+		Directory.Packages.props = Directory.Packages.props
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{8C37002D-05C6-4B1F-B4FC-C2F45C5E5328}"
@@ -22,6 +23,10 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Npgmq.Example.Console", "Npgmq.Example.Console\Npgmq.Example.Console.csproj", "{60A266EF-6EFA-42B0-B592-C0C50BC32C7C}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Npgmq.Example.Web", "Npgmq.Example.Web\Npgmq.Example.Web.csproj", "{76C38B62-7739-4F0D-8916-2EBC0C248AE7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Npgmq.Hosting", "Npgmq.Hosting\Npgmq.Hosting.csproj", "{234E42C0-E56F-464B-A084-B6B065062CBF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Npgmq.Example.Hosting", "Npgmq.Example.Hosting\Npgmq.Example.Hosting.csproj", "{86E253C1-2786-4550-903B-B8050F180288}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +50,14 @@ Global
 		{76C38B62-7739-4F0D-8916-2EBC0C248AE7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{76C38B62-7739-4F0D-8916-2EBC0C248AE7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{76C38B62-7739-4F0D-8916-2EBC0C248AE7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{234E42C0-E56F-464B-A084-B6B065062CBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{234E42C0-E56F-464B-A084-B6B065062CBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{234E42C0-E56F-464B-A084-B6B065062CBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{234E42C0-E56F-464B-A084-B6B065062CBF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{86E253C1-2786-4550-903B-B8050F180288}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{86E253C1-2786-4550-903B-B8050F180288}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{86E253C1-2786-4550-903B-B8050F180288}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{86E253C1-2786-4550-903B-B8050F180288}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{8C37002D-05C6-4B1F-B4FC-C2F45C5E5328} = {023319FF-914F-42F7-AE34-3BA9CF91DAEE}

@@ -1,0 +1,39 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>Npgmq</RootNamespace>
+        <LangVersion>default</LangVersion>
+        <PackageId>Npgmq.Hosting</PackageId>
+        <PackageProjectUrl>https://github.com/brianpursley/Npgmq</PackageProjectUrl>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <Copyright>Copyright © $(CopyrightYear) The Npgmq Authors</Copyright>
+        <Version>0.0.0</Version>
+        <Description>Npgmq provides a .NET client for Postgres Message Queue (PGMQ)</Description>
+        <RepositoryUrl>https://github.com/brianpursley/Npgmq</RepositoryUrl>
+        <PackageTags>PGMQ</PackageTags>
+        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="..\README.md" Pack="true" PackagePath=""/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <Content Include="..\README.md">
+            <Link>README.md</Link>
+        </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\Npgmq\Npgmq.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Microsoft.Extensions.Hosting" />
+    </ItemGroup>
+
+</Project>
