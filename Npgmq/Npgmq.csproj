@@ -15,12 +15,13 @@
         <RepositoryUrl>https://github.com/brianpursley/Npgmq</RepositoryUrl>
         <PackageTags>PGMQ</PackageTags>
         <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+        <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="JOS.SystemTextJson.DictionaryStringObject.JsonConverter" Version="3.0.0" />
-      <PackageReference Include="Npgsql" Version="10.0.2" />
-      <PackageReference Include="Npgsql.DependencyInjection" Version="10.0.2" />
+      <PackageReference Include="JOS.SystemTextJson.DictionaryStringObject.JsonConverter" />
+      <PackageReference Include="Npgsql" />
+      <PackageReference Include="Npgsql.DependencyInjection" />
     </ItemGroup>
 
     <ItemGroup>
